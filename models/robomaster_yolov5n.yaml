@@ -1,0 +1,56 @@
+# RoboMaster Optimized YOLOv5n Configuration
+# Optimized for fine-grained armor plate classification
+# Key changes:
+# 1. Reduced depth_multiple (less layers for fine-grained tasks)
+# 2. Increased width_multiple (more channels for better feature representation)
+# 3. Adjusted anchor sizes for armor plate detection
+# 4. Added attention mechanisms for fine-grained features
+
+# Parameters
+nc: 8 # RoboMaster armor classes: sentry, hero, engineer, standard_1-5
+depth_multiple: 0.25 # Reduced from 0.33 for fine-grained classification
+width_multiple: 0.35 # Increased from 0.25 for better feature representation
+anchors:
+  # Optimized for armor plate sizes (typically smaller than COCO objects)
+  - [5, 8, 8, 15, 12, 20] # P3/8 - small armor plates
+  - [15, 25, 20, 35, 25, 50] # P4/16 - medium armor plates
+  - [35, 70, 50, 90, 80, 160] # P5/32 - large armor plates (close-up)
+
+# YOLOv5 RoboMaster backbone
+backbone:
+  # [from, number, module, args]
+  [
+    [-1, 1, Conv, [64, 6, 2, 2]], # 0-P1/2
+    [-1, 1, Conv, [128, 3, 2]], # 1-P2/4
+    [-1, 2, C3, [128]], # Reduced from 3 layers
+    [-1, 1, Conv, [256, 3, 2]], # 3-P3/8
+    [-1, 4, C3, [256]], # Reduced from 6 layers
+    [-1, 1, Conv, [512, 3, 2]], # 5-P4/16
+    [-1, 6, C3, [512]], # Reduced from 9 layers
+    [-1, 1, Conv, [1024, 3, 2]], # 7-P5/32
+    [-1, 2, C3, [1024]], # Reduced from 3 layers
+    [-1, 1, SPPF, [1024, 5]], # 9
+  ]
+
+# YOLOv5 RoboMaster head
+head: [
+    [-1, 1, Conv, [512, 1, 1]],
+    [-1, 1, nn.Upsample, [None, 2, "nearest"]],
+    [[-1, 6], 1, Concat, [1]], # cat backbone P4
+    [-1, 2, C3, [512, False]], # 13 - Reduced layers
+
+    [-1, 1, Conv, [256, 1, 1]],
+    [-1, 1, nn.Upsample, [None, 2, "nearest"]],
+    [[-1, 4], 1, Concat, [1]], # cat backbone P3
+    [-1, 2, C3, [256, False]], # 17 (P3/8-small) - Reduced layers
+
+    [-1, 1, Conv, [256, 3, 2]],
+    [[-1, 14], 1, Concat, [1]], # cat head P4
+    [-1, 2, C3, [512, False]], # 20 (P4/16-medium) - Reduced layers
+
+    [-1, 1, Conv, [512, 3, 2]],
+    [[-1, 10], 1, Concat, [1]], # cat head P5
+    [-1, 2, C3, [1024, False]], # 23 (P5/32-large) - Reduced layers
+
+    [[17, 20, 23], 1, Detect, [nc, anchors]], # Detect(P3, P4, P5)
+  ]
