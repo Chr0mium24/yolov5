@@ -287,7 +287,7 @@ class UnifiedDataAugmenter:
     def augment(self, image: np.ndarray, labels: np.ndarray,
                 context_pool: Optional[List[Tuple[np.ndarray, np.ndarray]]] = None,
                 augmentation_type: str = 'mixed'
-                ) -> Tuple[np.ndarray, np.ndarray]:
+                ) -> Tuple[np.ndarray, np.ndarray, str]:
         """
         Apply unified data augmentation to image and labels.
 
@@ -301,45 +301,67 @@ class UnifiedDataAugmenter:
                              'context_mixup', 'mixed')
 
         Returns:
-            Augmented image and labels
+            Augmented image, labels, and applied augmentation type name
         """
         aug_image, aug_labels = image.copy(), labels.copy()
+        applied_augmentation = 'original'
 
         if augmentation_type == 'sticker_swap':
             # Only apply sticker swapping
-            aug_image, aug_labels = self.sticker_swap_augmenter.augment(aug_image, aug_labels)
+            if random.random() < self.sticker_swap_prob:
+                aug_image, aug_labels = self.sticker_swap_augmenter.augment(aug_image, aug_labels)
+                applied_augmentation = 'sticker_swap'
+            else:
+                applied_augmentation = 'original'
         elif augmentation_type == 'brightness_adjust':
             # Only apply enhanced brightness adjustment
-            aug_image, aug_labels = self.context_augmenter.augment(
-                aug_image, aug_labels, 'brightness')
+            if random.random() < self.brightness_adjust_prob:
+                aug_image, aug_labels = self.context_augmenter.augment(
+                    aug_image, aug_labels, 'brightness')
+                applied_augmentation = 'brightness_adjust'
+            else:
+                applied_augmentation = 'original'
         elif augmentation_type == 'contrast_adjust':
             # Only apply enhanced contrast adjustment
             aug_image, aug_labels = self.context_augmenter.augment(
                 aug_image, aug_labels, 'contrast')
+            applied_augmentation = 'contrast_adjust'
         elif augmentation_type == 'gamma_correct':
             # Only apply enhanced gamma correction
             aug_image, aug_labels = self.context_augmenter.augment(
                 aug_image, aug_labels, 'gamma')
+            applied_augmentation = 'gamma_correct'
         elif augmentation_type == 'histogram_equalize':
             # Only apply histogram equalization
             aug_image, aug_labels = self.context_augmenter.augment(
                 aug_image, aug_labels, 'histogram')
+            applied_augmentation = 'histogram_equalize'
         elif augmentation_type == 'clahe_enhance':
             # Only apply CLAHE enhancement
             aug_image, aug_labels = self.context_augmenter.augment(
                 aug_image, aug_labels, 'clahe')
+            applied_augmentation = 'clahe_enhance'
         elif augmentation_type == 'adaptive_enhance':
             # Only apply adaptive brightness/contrast enhancement
             aug_image, aug_labels = self.context_augmenter.augment(
                 aug_image, aug_labels, 'adaptive')
+            applied_augmentation = 'adaptive_enhance'
         elif augmentation_type == 'coco_insert':
             # Only apply COCO insertion
-            aug_image, aug_labels = self.background_mixup_augmenter.augment(
-                aug_image, aug_labels, context_pool=None)
+            if random.random() < self.coco_insert_prob:
+                aug_image, aug_labels = self.background_mixup_augmenter.augment(
+                    aug_image, aug_labels, context_pool=None)
+                applied_augmentation = 'coco_insert'
+            else:
+                applied_augmentation = 'original'
         elif augmentation_type == 'context_mixup':
             # Only apply context mixup
-            aug_image, aug_labels = self.background_mixup_augmenter.augment(
-                aug_image, aug_labels, context_pool)
+            if random.random() < self.context_mixup_prob and context_pool:
+                aug_image, aug_labels = self.background_mixup_augmenter.augment(
+                    aug_image, aug_labels, context_pool)
+                applied_augmentation = 'context_mixup'
+            else:
+                applied_augmentation = 'original'
         else:  # 'mixed' - apply multiple augmentations
             # Apply sticker swapping
             aug_image, aug_labels = self.sticker_swap_augmenter.augment(aug_image, aug_labels)
@@ -351,7 +373,9 @@ class UnifiedDataAugmenter:
             aug_image, aug_labels = self.background_mixup_augmenter.augment(
                 aug_image, aug_labels, context_pool)
 
-        return aug_image, aug_labels
+            applied_augmentation = 'mixed'
+
+        return aug_image, aug_labels, applied_augmentation
 
     def create_balanced_dataset(self, dataset_path: str, output_path: str,
                                generate_all_types: bool = True,
@@ -468,23 +492,41 @@ class UnifiedDataAugmenter:
                                        if available_contexts else None)
 
                         # Apply specific augmentation type
-                        aug_image, aug_labels = self.augment(image, labels, context_pool, aug_type)
+                        aug_image, aug_labels, actual_aug_type = self.augment(image, labels, context_pool, aug_type)
 
-                        # Determine output paths
+                        # Check if augmentation was actually applied
+                        aug_applied = actual_aug_type != 'original'
+
+                        # Determine output paths and file naming
                         if generate_all_types:
                             aug_img_dir = output_path / 'images' / f'{split}_augmented' / aug_type
                             aug_lbl_dir = output_path / 'labels' / f'{split}_augmented' / aug_type
-                            aug_suffix = f"_{aug_idx}"
+
+                            # Include augmentation status in filename
+                            if aug_applied:
+                                aug_suffix = f"_{actual_aug_type}_{aug_idx}"
+                            else:
+                                aug_suffix = f"_noaug_{aug_idx}"
                         else:
                             aug_img_dir = output_path / 'images'
                             aug_lbl_dir = output_path / 'labels'
-                            aug_suffix = f"_aug_{aug_idx}"
 
-                        # Save augmented data
+                            # Include augmentation status in filename
+                            if aug_applied:
+                                aug_suffix = f"_{actual_aug_type}_aug_{aug_idx}"
+                            else:
+                                aug_suffix = f"_noaug_{aug_idx}"
+
+                        # Save augmented data with descriptive filename
                         aug_name = f"{img_file.stem}{aug_suffix}{img_file.suffix}"
                         cv2.imwrite(str(aug_img_dir / aug_name), aug_image)
                         np.savetxt(str(aug_lbl_dir / f"{img_file.stem}{aug_suffix}.txt"),
                                   aug_labels, fmt='%d %.6f %.6f %.6f %.6f')
+
+                        # Log augmentation results for debugging
+                        if (i + 1) % 100 == 0:
+                            print(f"  Applied {actual_aug_type} to {img_file.name} -> {aug_name}")
+                            print(f"  Augmentation {'successful' if aug_applied else 'skipped'}")
 
                 if (i + 1) % 1000 == 0:
                     print(f"Processed {i + 1}/{len(image_files)} images in {split}")
@@ -549,9 +591,10 @@ def test_unified_data_augmenter():
 
     # Test sticker swap
     print("\n--- Testing sticker_swap ---")
-    aug_image_1, aug_labels_1 = augmenter.augment(image, labels,
+    aug_image_1, aug_labels_1, aug_type_1 = augmenter.augment(image, labels,
                                                   augmentation_type='sticker_swap')
     print("Sticker swap result labels:", aug_labels_1[:, 0])
+    print("Applied augmentation type:", aug_type_1)
 
     # Test enhanced brightness adjustment
     print("\n--- Testing brightness_adjust ---")
@@ -575,9 +618,10 @@ def test_unified_data_augmenter():
 
     # Test mixed augmentation
     print("\n--- Testing mixed augmentation ---")
-    aug_image_6, aug_labels_6 = augmenter.augment(image, labels,
+    aug_image_6, aug_labels_6, aug_type_6 = augmenter.augment(image, labels,
                                                   augmentation_type='mixed')
     print("Mixed augmentation result labels:", aug_labels_6[:, 0])
+    print("Applied augmentation type:", aug_type_6)
 
     return aug_image_1, aug_labels_1
 
