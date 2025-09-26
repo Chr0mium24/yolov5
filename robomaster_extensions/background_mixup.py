@@ -210,23 +210,31 @@ class BackgroundMixupAugmenter:
 
         # Try different region sizes
         for size in range(min_size, max_size + 1, min_size // 2):
+            # Generate all possible positions for this size
+            positions = []
             for x in range(0, w - size + 1, size // 2):
                 for y in range(0, h - size + 1, size // 2):
-                    region = (x, y, x + size, y + size)
+                    positions.append((x, y))
 
-                    # Check if this region overlaps with any armor plate
-                    overlap = False
-                    for occupied in occupied_boxes:
-                        if self._boxes_overlap(region, occupied):
-                            overlap = True
-                            break
+            # Shuffle positions to avoid left-top bias
+            random.shuffle(positions)
 
-                    if not overlap:
-                        available_regions.append((x, y, size, size))
+            # Check each position for overlap
+            for x, y in positions:
+                region = (x, y, x + size, y + size)
 
-        # Sort by size (larger regions first) and then shuffle for randomness
-        available_regions.sort(key=lambda r: r[2] * r[3], reverse=True)
-        random.shuffle(available_regions[:len(available_regions)//2])  # Shuffle top half
+                # Check if this region overlaps with any armor plate
+                overlap = False
+                for occupied in occupied_boxes:
+                    if self._boxes_overlap(region, occupied):
+                        overlap = True
+                        break
+
+                if not overlap:
+                    available_regions.append((x, y, size, size))
+
+        # Shuffle all regions to ensure random distribution
+        random.shuffle(available_regions)
 
         return available_regions
 

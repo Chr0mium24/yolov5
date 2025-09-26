@@ -388,7 +388,7 @@ class UnifiedDataAugmenter:
                         np.savetxt(str(aug_lbl_dir / f"{img_file.stem}{aug_suffix}.txt"),
                                   aug_labels, fmt='%d %.6f %.6f %.6f %.6f')
 
-                if (i + 1) % 100 == 0:
+                if (i + 1) % 1000 == 0:
                     print(f"Processed {i + 1}/{len(image_files)} images in {split}")
 
         # Save configuration
