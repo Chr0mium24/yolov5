@@ -11,14 +11,20 @@ test: test/images       # 测试集 (可选)
 
 # RoboMaster装甲板类别
 names:
-  0: sentry        # 前哨站
-  1: hero          # 英雄
-  2: engineer      # 工程
-  3: standard_1    # 标准1
-  4: standard_2    # 标准2
-  5: standard_3    # 标准3
-  6: standard_4    # 标准4
-  7: standard_5    # 标准5
+  0: B1      # 蓝方1号
+  1: B2      # 蓝方2号
+  2: B3      # 蓝方3号
+  3: B4      # 蓝方4号
+  4: B5      # 蓝方5号
+  5: BHero   # 蓝方英雄
+  6: R1      # 红方1号
+  7: R2      # 红方2号
+  8: R3      # 红方3号
+  9: R4      # 红方4号
+  10: R5     # 红方5号
+  11: RHero  # 红方英雄
+  12: RQS    # 红方前哨站
+  13: BQS    # 蓝方前哨站
 
 # 数据集元信息
-nc: 8  # 类别数量
+nc: 14  # 类别数量

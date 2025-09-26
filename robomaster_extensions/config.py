@@ -14,28 +14,40 @@ from pathlib import Path
 class RoboMasterConfig:
     """Centralized configuration for RoboMaster system."""
 
-    # Default RoboMaster class definitions
+    # Default RoboMaster class definitions (Updated for 14-class system)
     DEFAULT_CLASS_MAP = {
-        'sentry': 0,      # 前哨站
-        'hero': 1,        # 英雄
-        'engineer': 2,    # 工程
-        'standard_1': 3,  # 标准1
-        'standard_2': 4,  # 标准2
-        'standard_3': 5,  # 标准3
-        'standard_4': 6,  # 标准4
-        'standard_5': 7   # 标准5
+        'B1': 0,      # 蓝方1号
+        'B2': 1,      # 蓝方2号
+        'B3': 2,      # 蓝方3号
+        'B4': 3,      # 蓝方4号
+        'B5': 4,      # 蓝方5号
+        'BHero': 5,   # 蓝方英雄
+        'R1': 6,      # 红方1号
+        'R2': 7,      # 红方2号
+        'R3': 8,      # 红方3号
+        'R4': 9,      # 红方4号
+        'R5': 10,     # 红方5号
+        'RHero': 11,  # 红方英雄
+        'RQS': 12,    # 红方前哨站
+        'BQS': 13     # 蓝方前哨站
     }
 
     # Default class names (index -> name mapping)
     DEFAULT_CLASS_NAMES = {
-        0: 'sentry',
-        1: 'hero',
-        2: 'engineer',
-        3: 'standard_1',
-        4: 'standard_2',
-        5: 'standard_3',
-        6: 'standard_4',
-        7: 'standard_5'
+        0: 'B1',
+        1: 'B2',
+        2: 'B3',
+        3: 'B4',
+        4: 'B5',
+        5: 'BHero',
+        6: 'R1',
+        7: 'R2',
+        8: 'R3',
+        9: 'R4',
+        10: 'R5',
+        11: 'RHero',
+        12: 'RQS',
+        13: 'BQS'
     }
 
     def __init__(self, config_path: Optional[Union[str, Path]] = None):
@@ -68,13 +80,14 @@ class RoboMasterConfig:
 
     @property
     def sentry_classes(self) -> List[int]:
-        """Get sentry class indices."""
-        return [self._class_map.get('sentry', 0)]
+        """Get sentry class indices (RQS=12, BQS=13)."""
+        return [self._class_map.get('RQS', 12), self._class_map.get('BQS', 13)]
 
     @property
     def vehicle_classes(self) -> List[int]:
-        """Get vehicle class indices (non-sentry)."""
-        return [idx for name, idx in self._class_map.items() if name != 'sentry']
+        """Get vehicle class indices (all non-sentry classes)."""
+        sentry_indices = set(self.sentry_classes)
+        return [idx for idx in self._class_map.values() if idx not in sentry_indices]
 
     def get_class_index(self, class_name: str) -> int:
         """
