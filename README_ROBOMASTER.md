@@ -51,9 +51,11 @@ yolov5/
 │   ├── robomaster_yolov5s.yaml   # 优化的标准模型
 │   └── robomaster_yolov5x.yaml   # 优化的大模型(教师)
 ├── scripts/
-│   ├── train_with_distillation.py      # 蒸馏训练脚本
-│   └── active_learning_pipeline.py     # 主动学习流程
-└── CLAUDE.md                      # 详细架构文档
+    ├── create_directory_structure.py   # 自动创建目录结构
+    ├── split_dataset.py               # 自动分割数据集
+    ├── train_with_distillation.py      # 蒸馏训练脚本
+    └── active_learning_pipeline.py     # 主动学习流程
+
 ```
 
 ## 快速开始
@@ -71,7 +73,51 @@ python -c "import torch; print(torch.__version__)"
 
 ### 2. 数据准备
 
-#### 标准训练数据
+#### 自动创建目录结构
+
+**创建完整目录结构：**
+```bash
+# 自动创建所有必要的目录
+python scripts/create_directory_structure.py
+```
+
+**如果你已经有 images/ 和 labels/ 目录：**
+- 脚本会智能检测现有目录，只创建缺失的增强数据子目录
+- 不会覆盖已有的数据
+
+#### 完整数据处理流程
+
+**⚠️ 重要：正确的数据处理顺序**
+
+**步骤1：数据分割（必须先执行）**
+如果你已经将所有数据放在 `images/` 和 `labels/` 目录中：
+```bash
+# 自动分割为 train/val (默认8:2比例)
+python scripts/split_dataset.py
+
+# 自定义分割比例
+python scripts/split_dataset.py /path/to/images /path/to/labels 0.7
+```
+
+**步骤2：生成增强数据**
+数据分割完成后，生成3种类型的增强数据：
+```bash
+# 生成 sticker_swap, brightness_adjust, coco_insert 三种增强数据
+python scripts/data_preprocessing.py
+```
+
+**支持的使用场景：**
+- 图片直接放在 `images/` 下，标签放在 `labels/` 下
+- 指定任意源目录进行分割
+- 自定义训练集比例
+- 自动匹配图片和对应的标签文件
+
+**注意事项：**
+- 必须先运行 `split_dataset.py` 创建 train/val 结构
+- 然后运行 `data_preprocessing.py` 生成增强数据
+- 如果目录结构已存在，脚本会智能跳过已处理的数据
+
+#### 标准训练数据结构
 ```
 data/robomaster/
 ├── images/
@@ -240,23 +286,30 @@ print(f"背景偏见检测结果: {results['bias_detection_info']}")
 ## 配置参数
 
 ### 训练超参数
+
+**参数位置说明：**
+- **基础训练参数**: `data/hyps/hyp.robomaster.yaml` 或命令行参数
+- **模型架构参数**: `models/robomaster_yolov5*.yaml` 配置文件
+- **数据集参数**: `data/robomaster.yaml`
+- **蒸馏和增强参数**: `robomaster_extensions/config/training_config.yaml`
+
 ```yaml
-# 基础训练参数
+# 基础训练参数 (data/hyps/hyp.robomaster.yaml)
 lr0: 0.001                    # 初始学习率
 momentum: 0.937               # SGD动量
 weight_decay: 0.0005          # 权重衰减
-epochs: 300                   # 训练轮数
-batch_size: 16               # 批次大小
+epochs: 300                   # 训练轮数 (命令行指定)
+batch_size: 16               # 批次大小 (命令行指定)
 
-# Label Smoothing
+# Label Smoothing (data/hyps/hyp.robomaster.yaml)
 label_smoothing: 0.1          # 标签平滑因子
 
-# 知识蒸馏
+# 知识蒸馏参数 (robomaster_extensions/config/training_config.yaml)
 distillation_alpha: 0.7       # 蒸馏损失权重
 distillation_temperature: 4.0 # 蒸馏温度
 distillation_method: 'crosskd' # 蒸馏方法
 
-# 背景偏见缓解
+# 背景偏见缓解参数 (robomaster_extensions/config/training_config.yaml)
 background_bias_augment: true  # 启用背景偏见增强
 sticker_swap_prob: 0.3        # 贴纸交换概率
 context_mixup_prob: 0.2       # 上下文混合概率

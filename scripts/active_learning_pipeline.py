@@ -11,9 +11,9 @@ This script implements an active learning pipeline that iteratively:
 
 Usage:
     python scripts/active_learning_pipeline.py --model-weights runs/train/exp/weights/best.pt \
-                                               --unlabeled-data data/unlabeled/ \
-                                               --budget 1000
-"""
+                                                --unlabeled-data data/unlabeled/ \
+                                                --budget 1000
+    """
 
 import argparse
 import os
