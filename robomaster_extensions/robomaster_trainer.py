@@ -37,7 +37,7 @@ sys.path.append('/Users/cr/yolov5')
 from models.yolo import Model
 from utils.loss import ComputeLoss
 from utils.metrics import fitness
-from utils.general import LOGGER
+from utils.general import LOGGER, check_yaml
 
 
 class RoboMasterTrainer:
@@ -201,7 +201,7 @@ class RoboMasterTrainer:
                 hyp = yaml.safe_load(f)
 
             # Scale hyperparameters based on model configuration
-            nc = self.config.num_classes  # number of classes
+            nc = self.robomaster_config.num_classes  # number of classes
             nl = 3  # number of detection layers (default for YOLOv5)
 
             # Scale hyperparameters (following train.py pattern)
@@ -212,7 +212,7 @@ class RoboMasterTrainer:
             # Attach to model
             self.current_model.nc = nc
             self.current_model.hyp = hyp
-            self.current_model.names = list(self.config.class_names.values())
+            self.current_model.names = list(self.robomaster_config.class_names.values())
 
             LOGGER.info(f"Loaded hyperparameters: {', '.join(f'{k}={v}' for k, v in hyp.items())}")
 
