@@ -159,7 +159,7 @@ class UnifiedDataAugmenter:
     def brightness_adjust_augmentation(self, image: np.ndarray,
                                      labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Apply adaptive brightness adjustment based on HSV color space.
+        Apply enhanced adaptive brightness adjustment with multiple methods.
         Delegates to the context augmenter.
 
         Args:
@@ -170,6 +170,81 @@ class UnifiedDataAugmenter:
             Brightness-adjusted image and original labels
         """
         return self.context_augmenter.brightness_adjust_augmentation(image, labels)
+
+    def contrast_adjustment(self, image: np.ndarray,
+                           labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Apply enhanced adaptive contrast adjustment with multiple methods.
+        Delegates to the context augmenter.
+
+        Args:
+            image: Input image
+            labels: Input labels (unchanged)
+
+        Returns:
+            Contrast-adjusted image and original labels
+        """
+        return self.context_augmenter.contrast_adjustment(image, labels)
+
+    def gamma_correction(self, image: np.ndarray,
+                        labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Apply enhanced gamma correction with adaptive range selection.
+        Delegates to the context augmenter.
+
+        Args:
+            image: Input image
+            labels: Input labels (unchanged)
+
+        Returns:
+            Gamma-corrected image and original labels
+        """
+        return self.context_augmenter.gamma_correction(image, labels)
+
+    def histogram_equalization(self, image: np.ndarray,
+                              labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Apply histogram equalization for contrast enhancement.
+        Delegates to the context augmenter.
+
+        Args:
+            image: Input image
+            labels: Input labels (unchanged)
+
+        Returns:
+            Histogram equalized image and original labels
+        """
+        return self.context_augmenter.histogram_equalization(image, labels)
+
+    def clahe_enhancement(self, image: np.ndarray,
+                         labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Apply Contrast Limited Adaptive Histogram Equalization (CLAHE).
+        Delegates to the context augmenter.
+
+        Args:
+            image: Input image
+            labels: Input labels (unchanged)
+
+        Returns:
+            CLAHE enhanced image and original labels
+        """
+        return self.context_augmenter.clahe_enhancement(image, labels)
+
+    def adaptive_brightness_contrast(self, image: np.ndarray,
+                                   labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Apply combined adaptive brightness and contrast adjustment.
+        Delegates to the context augmenter.
+
+        Args:
+            image: Input image
+            labels: Input labels (unchanged)
+
+        Returns:
+            Enhanced image and original labels
+        """
+        return self.context_augmenter.adaptive_brightness_contrast(image, labels)
 
     def load_coco_images(self) -> List[np.ndarray]:
         """
@@ -221,7 +296,9 @@ class UnifiedDataAugmenter:
             labels: Input labels
             context_pool: Pool of images from different contexts for mixup
             augmentation_type: Type of augmentation ('sticker_swap', 'brightness_adjust',
-                             'coco_insert', 'context_mixup', 'mixed')
+                             'contrast_adjust', 'gamma_correct', 'histogram_equalize',
+                             'clahe_enhance', 'adaptive_enhance', 'coco_insert',
+                             'context_mixup', 'mixed')
 
         Returns:
             Augmented image and labels
@@ -232,9 +309,29 @@ class UnifiedDataAugmenter:
             # Only apply sticker swapping
             aug_image, aug_labels = self.sticker_swap_augmenter.augment(aug_image, aug_labels)
         elif augmentation_type == 'brightness_adjust':
-            # Only apply brightness adjustment
+            # Only apply enhanced brightness adjustment
             aug_image, aug_labels = self.context_augmenter.augment(
                 aug_image, aug_labels, 'brightness')
+        elif augmentation_type == 'contrast_adjust':
+            # Only apply enhanced contrast adjustment
+            aug_image, aug_labels = self.context_augmenter.augment(
+                aug_image, aug_labels, 'contrast')
+        elif augmentation_type == 'gamma_correct':
+            # Only apply enhanced gamma correction
+            aug_image, aug_labels = self.context_augmenter.augment(
+                aug_image, aug_labels, 'gamma')
+        elif augmentation_type == 'histogram_equalize':
+            # Only apply histogram equalization
+            aug_image, aug_labels = self.context_augmenter.augment(
+                aug_image, aug_labels, 'histogram')
+        elif augmentation_type == 'clahe_enhance':
+            # Only apply CLAHE enhancement
+            aug_image, aug_labels = self.context_augmenter.augment(
+                aug_image, aug_labels, 'clahe')
+        elif augmentation_type == 'adaptive_enhance':
+            # Only apply adaptive brightness/contrast enhancement
+            aug_image, aug_labels = self.context_augmenter.augment(
+                aug_image, aug_labels, 'adaptive')
         elif augmentation_type == 'coco_insert':
             # Only apply COCO insertion
             aug_image, aug_labels = self.background_mixup_augmenter.augment(
@@ -272,8 +369,9 @@ class UnifiedDataAugmenter:
         output_path = Path(output_path)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        # Define augmentation strategies
-        aug_strategies = ['sticker_swap', 'brightness_adjust', 'coco_insert'] if generate_all_types else ['mixed']
+        # Define enhanced augmentation strategies
+        aug_strategies = ['sticker_swap', 'brightness_adjust', 'contrast_adjust',
+                         'clahe_enhance', 'adaptive_enhance', 'coco_insert'] if generate_all_types else ['mixed']
 
         # Create organized output directory structure matching new layout
         if generate_all_types:
@@ -455,16 +553,31 @@ def test_unified_data_augmenter():
                                                   augmentation_type='sticker_swap')
     print("Sticker swap result labels:", aug_labels_1[:, 0])
 
-    # Test brightness adjustment
+    # Test enhanced brightness adjustment
     print("\n--- Testing brightness_adjust ---")
     aug_image_2, aug_labels_2 = augmenter.brightness_adjust_augmentation(image, labels)
     print("Brightness adjust result labels:", aug_labels_2[:, 0])
 
+    # Test enhanced contrast adjustment
+    print("\n--- Testing contrast_adjust ---")
+    aug_image_3, aug_labels_3 = augmenter.contrast_adjustment(image, labels)
+    print("Contrast adjust result labels:", aug_labels_3[:, 0])
+
+    # Test CLAHE enhancement
+    print("\n--- Testing clahe_enhance ---")
+    aug_image_4, aug_labels_4 = augmenter.clahe_enhancement(image, labels)
+    print("CLAHE enhance result labels:", aug_labels_4[:, 0])
+
+    # Test adaptive brightness/contrast
+    print("\n--- Testing adaptive_enhance ---")
+    aug_image_5, aug_labels_5 = augmenter.adaptive_brightness_contrast(image, labels)
+    print("Adaptive enhance result labels:", aug_labels_5[:, 0])
+
     # Test mixed augmentation
     print("\n--- Testing mixed augmentation ---")
-    aug_image_3, aug_labels_3 = augmenter.augment(image, labels,
+    aug_image_6, aug_labels_6 = augmenter.augment(image, labels,
                                                   augmentation_type='mixed')
-    print("Mixed augmentation result labels:", aug_labels_3[:, 0])
+    print("Mixed augmentation result labels:", aug_labels_6[:, 0])
 
     return aug_image_1, aug_labels_1
 
