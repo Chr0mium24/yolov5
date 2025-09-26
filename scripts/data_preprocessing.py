@@ -11,7 +11,7 @@ from pathlib import Path
 # 添加项目路径
 sys.path.append(str(Path(__file__).parent.parent))
 
-from robomaster_extensions.data_augmentation import BackgroundBiasAugmenter
+from robomaster_extensions.data_augmentation import UnifiedDataAugmenter
 
 
 def main():
@@ -41,7 +41,7 @@ def main():
         return
 
     # 初始化增强器
-    augmenter = BackgroundBiasAugmenter(
+    augmenter = UnifiedDataAugmenter(
         sticker_swap_prob=args.sticker_swap_prob,
         context_mixup_prob=args.context_mixup_prob,
         preserve_geometry=True

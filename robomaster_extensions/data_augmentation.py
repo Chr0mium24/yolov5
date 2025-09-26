@@ -38,7 +38,7 @@ class UnifiedDataAugmenter:
                  brightness_adjust_prob: float = 0.4,
                  coco_insert_prob: float = 0.2,
                  preserve_geometry: bool = True,
-                 coco_img_path: Optional[str] = '/Users/cr/yolov5/data/robomaster/cocoimg'):
+                 coco_img_path: Optional[str] = 'data/robomaster/cocoimg'):
         """
         Initialize the unified data augmenter.
 
@@ -275,9 +275,13 @@ class UnifiedDataAugmenter:
         # Define augmentation strategies
         aug_strategies = ['sticker_swap', 'brightness_adjust', 'coco_insert'] if generate_all_types else ['mixed']
 
-        # Create organized output directory structure
+        # Create organized output directory structure matching new layout
         if generate_all_types:
             for split in ['train', 'val']:
+                # Create original directories
+                (output_path / 'images' / split).mkdir(parents=True, exist_ok=True)
+                (output_path / 'labels' / split).mkdir(parents=True, exist_ok=True)
+                # Create augmented directories
                 for aug_type in aug_strategies:
                     (output_path / 'images' / f'{split}_augmented' / aug_type).mkdir(parents=True, exist_ok=True)
                     (output_path / 'labels' / f'{split}_augmented' / aug_type).mkdir(parents=True, exist_ok=True)

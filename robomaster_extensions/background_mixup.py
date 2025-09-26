@@ -24,7 +24,7 @@ class BackgroundMixupAugmenter:
     def __init__(self,
                  context_mixup_prob: float = 0.2,
                  coco_insert_prob: float = 0.2,
-                 coco_img_path: Optional[str] = '/Users/cr/yolov5/data/robomaster/cocoimg'):
+                 coco_img_path: Optional[str] = 'data/robomaster/cocoimg'):
         """
         Initialize the background mixup augmenter.
 
