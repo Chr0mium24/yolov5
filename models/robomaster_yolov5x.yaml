@@ -3,7 +3,7 @@
 # Optimized for maximum accuracy in armor plate detection
 
 # Parameters
-nc: 8 # RoboMaster armor classes
+nc: 14 # RoboMaster armor classes: B1-B5, BHero, R1-R5, RHero, RQS, BQS
 depth_multiple: 1.2 # Increased from 1.0 for teacher model
 width_multiple: 1.25 # Standard width for teacher
 anchors:

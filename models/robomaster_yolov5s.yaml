@@ -3,7 +3,7 @@
 # Key optimizations for fine-grained classification
 
 # Parameters
-nc: 8 # RoboMaster armor classes
+nc: 14 # RoboMaster armor classes: B1-B5, BHero, R1-R5, RHero, RQS, BQS
 depth_multiple: 0.4 # Reduced from 0.5 for efficiency
 width_multiple: 0.6 # Increased from 0.5 for better features
 anchors:
