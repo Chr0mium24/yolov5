@@ -141,7 +141,7 @@ class RoboMasterTrainer:
             self.teacher_model = self.teacher_model.to(self.device)
 
             # Load teacher weights
-            checkpoint = torch.load(teacher_weights, map_location=self.device)
+            checkpoint = torch.load(teacher_weights, map_location=self.device, weights_only=False)
             self.teacher_model.load_state_dict(checkpoint['model'] if 'model' in checkpoint else checkpoint)
             self.teacher_model.eval()
 
