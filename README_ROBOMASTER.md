@@ -75,12 +75,57 @@ python -c "import torch; print(torch.__version__)"
 ```
 data/robomaster/
 ├── images/
-│   ├── train/
-│   └── val/
-└── labels/
-    ├── train/
-    └── val/
+│   ├── train/                    # 原始训练图片
+│   ├── val/                      # 原始验证图片
+│   ├── train_augmented/          # 增强训练数据
+│   │   ├── sticker_swap/         # 贴纸交换增强
+│   │   ├── brightness_adjust/    # 明暗调整增强
+│   │   └── coco_insert/          # COCO图片插入增强
+│   └── val_augmented/            # 增强验证数据
+│       ├── sticker_swap/
+│       ├── brightness_adjust/
+│       └── coco_insert/
+├── labels/
+│   ├── train/                    # 原始训练标签
+│   ├── val/                      # 原始验证标签
+│   ├── train_augmented/          # 对应增强标签
+│   │   ├── sticker_swap/
+│   │   ├── brightness_adjust/
+│   │   └── coco_insert/
+│   └── val_augmented/
+│       ├── sticker_swap/
+│       ├── brightness_adjust/
+│       └── coco_insert/
+├── cocoimg/                      # COCO背景图片库
+│   ├── indoor/                   # 室内场景
+│   ├── outdoor/                  # 室外场景
+│   └── industrial/               # 工业场景
+└── processed/                    # 处理配置和缓存
+    ├── augmentation_config.yaml
+    ├── brightness_stats.json
+    └── coco_embeddings.pkl
 ```
+
+#### 三类数据增强策略
+
+##### 1. 贴纸交换增强 (sticker_swap)
+- **目的**: 解决背景偏见问题
+- **方法**: 将非前哨战贴纸贴在前哨站上，前哨站贴纸贴在车上
+- **保存位置**: `train_augmented/sticker_swap/`
+- **标签处理**: 根据贴纸交换更新类别标签
+
+##### 2. 明暗调整增强 (brightness_adjust)
+- **目的**: 提升不同光照条件下的识别能力
+- **方法**: 基于HSV色彩空间的自适应亮度调整
+- **保存位置**: `train_augmented/brightness_adjust/`
+- **标签处理**: 保持原始标签不变
+
+##### 3. COCO图片插入增强 (coco_insert)
+- **目的**: 增加背景多样性，减少环境依赖
+- **方法**: 在装甲板图片中插入无关COCO图片作为背景干扰
+- **保存位置**: `train_augmented/coco_insert/`
+- **COCO图片库**: `data/robomaster/cocoimg/`
+- **标签处理**: 保持原始装甲板标签，忽略插入的COCO对象
 
 #### 数据配置文件 (`data/robomaster.yaml`)
 ```yaml
