@@ -113,24 +113,19 @@ class BackgroundMixupAugmenter:
     def load_coco_images(self, target_size: Optional[Tuple[int, int]] = None) -> List[np.ndarray]:
         """
         Load COCO background images from the library with caching.
-        Dynamically adjusts image size based on target usage.
+        All images are standardized to 256x256 for efficiency.
 
         Args:
-            target_size: Optional target size (width, height) for resizing images
-                        If None, uses default size based on common image sizes
+            target_size: Ignored - all images are cached at 256x256
 
         Returns:
-            List of COCO background images
+            List of COCO background images (256x256)
         """
-        # Determine cache size based on target size
-        if target_size is not None:
-            cache_size = min(max(target_size), 512)  # Cap at 512 for memory efficiency
-        else:
-            cache_size = 256  # Default size
+        # Use fixed 256x256 size for all COCO images
+        cache_size = 256
+        cache_key = "coco_cache_256"
 
-        cache_key = f"coco_cache_{cache_size}"
-
-        # Return cached images if available for this size
+        # Return cached images if available
         if (self._coco_cache_loaded and
             hasattr(self, cache_key) and
             getattr(self, cache_key) is not None):
@@ -146,7 +141,7 @@ class BackgroundMixupAugmenter:
         coco_path = Path(self.coco_img_path)
 
         # Try to load from cache file
-        cache_file = coco_path / f'coco_cache_{cache_size}.pkl'
+        cache_file = coco_path / 'coco_cache_256.pkl'
         if cache_file.exists():
             try:
                 with open(cache_file, 'rb') as f:
@@ -159,14 +154,14 @@ class BackgroundMixupAugmenter:
                 print(f"Failed to load COCO cache, loading fresh: {e}")
 
         # Load images directly from the folder
-        print(f"Loading COCO background images (size: {cache_size})...")
+        print(f"Loading COCO background images (256x256)...")
         if coco_path.exists():
             image_files = list(coco_path.glob('*.jpg')) + list(coco_path.glob('*.png'))
             for img_file in image_files:
                 img = cv2.imread(str(img_file))
                 if img is not None:
-                    # Dynamically resize based on cache size
-                    img_resized = cv2.resize(img, (cache_size, cache_size))
+                    # Resize to fixed 256x256
+                    img_resized = cv2.resize(img, (256, 256))
                     coco_images.append(img_resized)
             print(f"Loaded {len(coco_images)} images from {coco_path}")
 
@@ -270,9 +265,8 @@ class BackgroundMixupAugmenter:
         h, w = image.shape[:2]
         result_image = image.copy()
 
-        # Load COCO images with dynamic sizing based on image dimensions
-        target_size = (w, h)
-        coco_images = self.load_coco_images(target_size)
+        # Load COCO images (all are 256x256)
+        coco_images = self.load_coco_images()
 
         if not coco_images:
             return image, labels
