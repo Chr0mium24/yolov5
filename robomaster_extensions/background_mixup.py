@@ -229,7 +229,7 @@ class BackgroundMixupAugmenter:
 
                     # Calculate IoU
                     iou = self._calculate_iou(insert_box, armor_box)
-                    if iou > 0.1:  # Avoid significant overlap
+                    if iou > 0.05:  # Avoid significant overlap
                         overlap = True
                         break
 
