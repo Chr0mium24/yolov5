@@ -119,34 +119,53 @@ python scripts/data_preprocessing.py
 
 #### 标准训练数据结构
 ```
-data/robomaster/
-├── images/
-│   ├── train/                    # 原始训练图片
-│   ├── val/                      # 原始验证图片
-│   ├── train_augmented/          # 增强训练数据
-│   │   ├── sticker_swap/         # 贴纸交换增强
-│   │   ├── brightness_adjust/    # 明暗调整增强
-│   │   └── coco_insert/          # COCO图片插入增强
-│   └── val_augmented/            # 增强验证数据
-│       ├── sticker_swap/
-│       ├── brightness_adjust/
-│       └── coco_insert/
-├── labels/
-│   ├── train/                    # 原始训练标签
-│   ├── val/                      # 原始验证标签
-│   ├── train_augmented/          # 对应增强标签
-│   │   ├── sticker_swap/
-│   │   ├── brightness_adjust/
-│   │   └── coco_insert/
-│   └── val_augmented/
-│       ├── sticker_swap/
-│       ├── brightness_adjust/
-│       └── coco_insert/
-├── cocoimg/                      # COCO背景图片库
-└── processed/                    # 处理配置和缓存
-    ├── augmentation_config.yaml
-    ├── brightness_stats.json
-    └── coco_embeddings.pkl
+data
+├── hyps
+├── robomaster
+│   ├── cocoimg
+│   ├── images
+│   │   ├── train
+│   │   └── val
+│   └── labels
+│       ├── train
+│       └── val
+├── robomaster_augmented
+│   ├── images
+│   │   ├── train
+│   │   ├── train_augmented
+│   │   │   ├── adaptive_enhance
+│   │   │   ├── brightness_adjust
+│   │   │   ├── clahe_enhance
+│   │   │   ├── coco_insert
+│   │   │   ├── contrast_adjust
+│   │   │   └── sticker_swap
+│   │   ├── val
+│   │   └── val_augmented
+│   │       ├── adaptive_enhance
+│   │       ├── brightness_adjust
+│   │       ├── clahe_enhance
+│   │       ├── coco_insert
+│   │       ├── contrast_adjust
+│   │       └── sticker_swap
+│   ├── labels
+│   │   ├── train
+│   │   ├── train_augmented
+│   │   │   ├── adaptive_enhance
+│   │   │   ├── brightness_adjust
+│   │   │   ├── clahe_enhance
+│   │   │   ├── coco_insert
+│   │   │   ├── contrast_adjust
+│   │   │   └── sticker_swap
+│   │   ├── val
+│   │   └── val_augmented
+│   │       ├── adaptive_enhance
+│   │       ├── brightness_adjust
+│   │       ├── clahe_enhance
+│   │       ├── coco_insert
+│   │       ├── contrast_adjust
+│   │       └── sticker_swap
+│   └── processed
+└── scripts
 ```
 
 #### 三类数据增强策略

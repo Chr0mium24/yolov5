@@ -5,9 +5,9 @@
 path: data/robomaster
 
 # 训练/验证/测试集路径 (相对于path)
-train: images/train_augmented  # 使用增强后的数据进行训练
-val: images/val            # 验证集
-test: images/test          # 测试集 (可选)
+train: images/train  # 使用原始训练数据
+val: images/val      # 验证集
+test: images/test    # 测试集 (可选)
 
 # RoboMaster装甲板类别
 names:

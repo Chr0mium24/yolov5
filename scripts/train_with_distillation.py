@@ -114,12 +114,66 @@ def load_dataset_config(data_path: str) -> dict:
     return data_config
 
 
+def collect_augmented_paths(base_path: str, data_root: str) -> list:
+    """Collect paths from augmented data structure."""
+    from pathlib import Path
+
+    full_path = Path(data_root) / base_path
+    paths = []
+
+    # First add the original path if it exists
+    if full_path.exists():
+        paths.append(str(full_path))
+
+    # Check if there's an augmented version
+    augmented_path = Path(str(full_path) + '_augmented')
+    if augmented_path.exists():
+        # Add all augmented subdirectories
+        subdirs = [d for d in augmented_path.iterdir() if d.is_dir()]
+        for subdir in subdirs:
+            paths.append(str(subdir))
+
+    # Return at least the original path if nothing else exists
+    return paths if paths else [str(full_path)]
+
+
+def create_combined_path_file(paths: list, temp_file: str = '/tmp/combined_paths.txt'):
+    """Create a temporary file with all image paths for the dataloader."""
+    from pathlib import Path
+    import glob
+
+    all_images = []
+    for path in paths:
+        # Find all image files in each path
+        path_obj = Path(path)
+        if path_obj.exists():
+            for ext in ['*.jpg', '*.jpeg', '*.png', '*.bmp']:
+                all_images.extend(glob.glob(str(path_obj / ext)))
+
+    # Write all image paths to temporary file
+    with open(temp_file, 'w') as f:
+        for img_path in all_images:
+            f.write(f"{img_path}\n")
+
+    return temp_file
+
+
 def create_dataloaders(data_config: dict, args) -> tuple:
     """Create training and validation dataloaders."""
+    from pathlib import Path
+
+    # Handle augmented data paths
+    train_paths = collect_augmented_paths(data_config['train'], data_config['path'])
+
+    # For now, use the first available path (fallback to standard structure)
+    train_path = train_paths[0] if train_paths else str(Path(data_config['path']) / data_config['train'])
+
+    print(f"Using training path: {train_path}")
+    print(f"Available training paths: {train_paths}")
 
     # Training dataloader
     train_loader, _ = create_dataloader(
-        path=data_config['train'],
+        path=train_path,
         imgsz=args.imgsz,
         batch_size=args.batch_size,
         stride=32,  # YOLOv5 stride
@@ -136,9 +190,15 @@ def create_dataloaders(data_config: dict, args) -> tuple:
         shuffle=True
     )
 
+    # Handle validation paths
+    val_paths = collect_augmented_paths(data_config['val'], data_config['path'])
+    val_path = val_paths[0] if val_paths else str(Path(data_config['path']) / data_config['val'])
+
+    print(f"Using validation path: {val_path}")
+
     # Validation dataloader
     val_loader, _ = create_dataloader(
-        path=data_config['val'],
+        path=val_path,
         imgsz=args.imgsz,
         batch_size=args.batch_size,
         stride=32,
