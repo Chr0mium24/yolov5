@@ -217,44 +217,8 @@ class RoboMasterTrainer:
             LOGGER.info(f"Loaded hyperparameters: {', '.join(f'{k}={v}' for k, v in hyp.items())}")
 
         except Exception as e:
-            LOGGER.warning(f"Failed to load hyperparameters from {hyp_path}: {e}")
-            # Use minimal default hyperparameters
-            hyp = {
-                'lr0': 0.01,
-                'lrf': 0.01,
-                'momentum': 0.937,
-                'weight_decay': 0.0005,
-                'warmup_epochs': 3.0,
-                'warmup_momentum': 0.8,
-                'warmup_bias_lr': 0.1,
-                'box': 0.05,
-                'cls': 0.5,
-                'cls_pw': 1.0,
-                'obj': 1.0,
-                'obj_pw': 1.0,
-                'iou_t': 0.20,
-                'anchor_t': 4.0,
-                'fl_gamma': 0.0,
-                'hsv_h': 0.015,
-                'hsv_s': 0.7,
-                'hsv_v': 0.4,
-                'degrees': 0.0,
-                'translate': 0.1,
-                'scale': 0.5,
-                'shear': 0.0,
-                'perspective': 0.0,
-                'flipud': 0.0,
-                'fliplr': 0.5,
-                'mosaic': 1.0,
-                'mixup': 0.0,
-                'copy_paste': 0.0,
-                'label_smoothing': 0.1
-            }
-
-            # Attach minimal hyperparameters
-            self.current_model.nc = self.config.num_classes
-            self.current_model.hyp = hyp
-            self.current_model.names = list(self.config.class_names.values())
+            LOGGER.error(f"Failed to load hyperparameters from {hyp_path}: {e}")
+            raise RuntimeError(f"Cannot proceed without hyperparameters. Please ensure {hyp_path} exists.")
 
     def _init_distillation(self):
         """Initialize knowledge distillation components."""
