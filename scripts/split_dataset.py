@@ -116,6 +116,33 @@ def split_existing_mixed_data(base_path: str = "./", train_ratio: float = 0.8):
     images_dir = base_path / "images"
     labels_dir = base_path / "labels"
 
+    # 如果根目录下没有images/labels，尝试data/robomaster/目录
+    if not images_dir.exists() or not labels_dir.exists():
+        print("未找到images/和labels/目录，尝试查找data/robomaster/目录...")
+        robomaster_images = base_path / "data" / "robomaster" / "images"
+        robomaster_labels = base_path / "data" / "robomaster" / "labels"
+
+        if robomaster_images.exists() and robomaster_labels.exists():
+            print(f"找到RoboMaster数据目录: {robomaster_images}")
+            images_dir = robomaster_images
+            labels_dir = robomaster_labels
+        else:
+            print("错误: 未找到数据目录，请确保以下任一目录结构存在:")
+            print("  方案1: ./images/ 和 ./labels/")
+            print("  方案2: ./data/robomaster/images/ 和 ./data/robomaster/labels/")
+            print("\n请先将您的图片和标签文件放到相应目录中，然后重新运行此脚本。")
+            print("或者使用以下命令创建目录结构:")
+            print("  python scripts/create_directory_structure.py")
+            return
+
+    # 检查目录是否为空
+    if not any(images_dir.iterdir()) or not any(labels_dir.iterdir()):
+        print(f"错误: 数据目录为空")
+        print(f"图片目录: {images_dir} ({'空' if not any(images_dir.iterdir()) else '有文件'})")
+        print(f"标签目录: {labels_dir} ({'空' if not any(labels_dir.iterdir()) else '有文件'})")
+        print("\n请先将您的图片和标签文件放到相应目录中，然后重新运行此脚本。")
+        return
+
     # 检查是否已经有train/val子目录
     if (images_dir / "train").exists() or (images_dir / "val").exists():
         print("检测到已有train/val目录，请确认是否要重新分割")
