@@ -97,9 +97,6 @@ data/robomaster/
 │       ├── brightness_adjust/
 │       └── coco_insert/
 ├── cocoimg/                      # COCO背景图片库
-│   ├── indoor/                   # 室内场景
-│   ├── outdoor/                  # 室外场景
-│   └── industrial/               # 工业场景
 └── processed/                    # 处理配置和缓存
     ├── augmentation_config.yaml
     ├── brightness_stats.json
