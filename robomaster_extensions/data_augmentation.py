@@ -524,9 +524,9 @@ class UnifiedDataAugmenter:
                                   aug_labels, fmt='%d %.6f %.6f %.6f %.6f')
 
                         # Log augmentation results for debugging
-                        if (i + 1) % 100 == 0:
-                            print(f"  Applied {actual_aug_type} to {img_file.name} -> {aug_name}")
-                            print(f"  Augmentation {'successful' if aug_applied else 'skipped'}")
+                        # if (i + 1) % 100 == 0:
+                        #     print(f"  Applied {actual_aug_type} to {img_file.name} -> {aug_name}")
+                        #     print(f"  Augmentation {'successful' if aug_applied else 'skipped'}")
 
                 if (i + 1) % 1000 == 0:
                     print(f"Processed {i + 1}/{len(image_files)} images in {split}")
