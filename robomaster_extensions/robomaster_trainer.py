@@ -146,7 +146,29 @@ class RoboMasterTrainer:
                 state_dict = checkpoint['model'].float().state_dict()
             else:
                 state_dict = checkpoint.float().state_dict() if hasattr(checkpoint, 'state_dict') else checkpoint
-            self.teacher_model.load_state_dict(state_dict)
+
+            # Filter state dict to handle size mismatches
+            model_state_dict = self.teacher_model.state_dict()
+            filtered_state_dict = {}
+
+            for key, param in state_dict.items():
+                if key in model_state_dict:
+                    if param.shape == model_state_dict[key].shape:
+                        filtered_state_dict[key] = param
+                    else:
+                        print(f"Skipping layer {key} due to shape mismatch: "
+                              f"checkpoint {param.shape} vs model {model_state_dict[key].shape}")
+                else:
+                    print(f"Skipping unexpected key: {key}")
+
+            # Load filtered state dict
+            missing_keys, unexpected_keys = self.teacher_model.load_state_dict(filtered_state_dict, strict=False)
+
+            print(f"Loaded teacher model with {len(filtered_state_dict)} layers")
+            if missing_keys:
+                print(f"Missing keys: {len(missing_keys)} layers will use random initialization")
+            if unexpected_keys:
+                print(f"Unexpected keys: {len(unexpected_keys)} layers were ignored")
             self.teacher_model.eval()
 
             # Initialize distillation components
