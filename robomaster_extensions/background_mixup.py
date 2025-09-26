@@ -267,15 +267,15 @@ class BackgroundMixupAugmenter:
         if not self.coco_img_path:
             return image, labels
 
+        h, w = image.shape[:2]
+        result_image = image.copy()
+
         # Load COCO images with dynamic sizing based on image dimensions
         target_size = (w, h)
         coco_images = self.load_coco_images(target_size)
 
         if not coco_images:
             return image, labels
-
-        h, w = image.shape[:2]
-        result_image = image.copy()
 
         # Find all available regions for COCO insertion
         available_regions = self._find_available_regions((h, w), labels)
