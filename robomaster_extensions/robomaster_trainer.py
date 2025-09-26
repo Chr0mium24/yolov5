@@ -174,6 +174,9 @@ class RoboMasterTrainer:
             # Initialize distillation components
             self._init_distillation()
 
+        # Load and attach hyperparameters to model
+        self._load_hyperparameters()
+
         # Initialize Grad-CAM analyzer
         self.gradcam_analyzer = GradCAMAnalyzer(self.current_model)
 
@@ -183,6 +186,75 @@ class RoboMasterTrainer:
         LOGGER.info(f"Loaded models: Student={type(self.student_model).__name__}")
         if self.teacher_model:
             LOGGER.info(f"Teacher={type(self.teacher_model).__name__}")
+
+    def _load_hyperparameters(self):
+        """Load and attach hyperparameters to model."""
+        import yaml
+        from utils.general import check_yaml
+
+        # Use default hyperparameters file
+        hyp_path = 'data/hyps/hyp.scratch-med.yaml'
+
+        try:
+            # Load hyperparameters
+            with open(check_yaml(hyp_path), errors='ignore') as f:
+                hyp = yaml.safe_load(f)
+
+            # Scale hyperparameters based on model configuration
+            nc = self.config.num_classes  # number of classes
+            nl = 3  # number of detection layers (default for YOLOv5)
+
+            # Scale hyperparameters (following train.py pattern)
+            hyp["cls"] *= nc / 80 * 3 / nl  # scale to classes and layers
+            hyp["obj"] *= (640 / 640) ** 2 * 3 / nl  # scale to image size and layers
+            hyp["label_smoothing"] = 0.1  # default label smoothing
+
+            # Attach to model
+            self.current_model.nc = nc
+            self.current_model.hyp = hyp
+            self.current_model.names = list(self.config.class_names.values())
+
+            LOGGER.info(f"Loaded hyperparameters: {', '.join(f'{k}={v}' for k, v in hyp.items())}")
+
+        except Exception as e:
+            LOGGER.warning(f"Failed to load hyperparameters from {hyp_path}: {e}")
+            # Use minimal default hyperparameters
+            hyp = {
+                'lr0': 0.01,
+                'lrf': 0.01,
+                'momentum': 0.937,
+                'weight_decay': 0.0005,
+                'warmup_epochs': 3.0,
+                'warmup_momentum': 0.8,
+                'warmup_bias_lr': 0.1,
+                'box': 0.05,
+                'cls': 0.5,
+                'cls_pw': 1.0,
+                'obj': 1.0,
+                'obj_pw': 1.0,
+                'iou_t': 0.20,
+                'anchor_t': 4.0,
+                'fl_gamma': 0.0,
+                'hsv_h': 0.015,
+                'hsv_s': 0.7,
+                'hsv_v': 0.4,
+                'degrees': 0.0,
+                'translate': 0.1,
+                'scale': 0.5,
+                'shear': 0.0,
+                'perspective': 0.0,
+                'flipud': 0.0,
+                'fliplr': 0.5,
+                'mosaic': 1.0,
+                'mixup': 0.0,
+                'copy_paste': 0.0,
+                'label_smoothing': 0.1
+            }
+
+            # Attach minimal hyperparameters
+            self.current_model.nc = self.config.num_classes
+            self.current_model.hyp = hyp
+            self.current_model.names = list(self.config.class_names.values())
 
     def _init_distillation(self):
         """Initialize knowledge distillation components."""
