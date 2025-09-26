@@ -163,10 +163,23 @@ def create_dataloaders(data_config: dict, args) -> tuple:
     from pathlib import Path
 
     # Handle augmented data paths
-    train_paths = collect_augmented_paths(data_config['train'], data_config['path'])
+    train_config = data_config['train']
+    if isinstance(train_config, list):
+        # If train is a list of paths, collect all augmented paths
+        train_paths = []
+        for path in train_config:
+            train_paths.extend(collect_augmented_paths(path, data_config['path']))
+    else:
+        # If train is a single path
+        train_paths = collect_augmented_paths(train_config, data_config['path'])
 
     # For now, use the first available path (fallback to standard structure)
-    train_path = train_paths[0] if train_paths else str(Path(data_config['path']) / data_config['train'])
+    if train_paths:
+        train_path = train_paths[0]
+    else:
+        # Fallback to first train path if it's a list, otherwise use as-is
+        fallback_train = train_config[0] if isinstance(train_config, list) else train_config
+        train_path = str(Path(data_config['path']) / fallback_train)
 
     print(f"Using training path: {train_path}")
     print(f"Available training paths: {train_paths}")
