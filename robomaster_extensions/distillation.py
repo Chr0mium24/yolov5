@@ -371,7 +371,11 @@ class ProgressiveDistillationTrainer:
             # Load pre-trained weights
             teacher_model = self.load_model(self.model_configs[self.model_order[0]], device)
             checkpoint = torch.load(base_weights, map_location=device)
-            teacher_model.load_state_dict(checkpoint['model'] if 'model' in checkpoint else checkpoint)
+            if 'model' in checkpoint:
+                state_dict = checkpoint['model'].float().state_dict()
+            else:
+                state_dict = checkpoint.float().state_dict() if hasattr(checkpoint, 'state_dict') else checkpoint
+            teacher_model.load_state_dict(state_dict)
             LOGGER.info(f"Loaded pre-trained weights from {base_weights}")
         else:
             # Train the largest model from scratch

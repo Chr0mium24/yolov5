@@ -142,7 +142,11 @@ class RoboMasterTrainer:
 
             # Load teacher weights
             checkpoint = torch.load(teacher_weights, map_location=self.device, weights_only=False)
-            self.teacher_model.load_state_dict(checkpoint['model'] if 'model' in checkpoint else checkpoint)
+            if 'model' in checkpoint:
+                state_dict = checkpoint['model'].float().state_dict()
+            else:
+                state_dict = checkpoint.float().state_dict() if hasattr(checkpoint, 'state_dict') else checkpoint
+            self.teacher_model.load_state_dict(state_dict)
             self.teacher_model.eval()
 
             # Initialize distillation components
