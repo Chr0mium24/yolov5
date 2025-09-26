@@ -12,6 +12,7 @@ import os
 import pickle
 from typing import List, Tuple, Dict, Optional
 from pathlib import Path
+from .config import get_robomaster_config
 
 
 class BackgroundMixupAugmenter:
@@ -36,21 +37,11 @@ class BackgroundMixupAugmenter:
         self.coco_insert_prob = coco_insert_prob
         self.coco_img_path = coco_img_path
 
-        # Define class mappings for RoboMaster
-        self.class_map = {
-            'sentry': 0,
-            'hero': 1,
-            'engineer': 2,
-            'standard_1': 3,
-            'standard_2': 4,
-            'standard_3': 5,
-            'standard_4': 6,
-            'standard_5': 7
-        }
-
-        # Context definitions
-        self.sentry_classes = [0]  # sentry
-        self.vehicle_classes = [1, 2, 3, 4, 5, 6, 7]  # all vehicles
+        # Load RoboMaster configuration
+        self.config = get_robomaster_config()
+        self.class_map = self.config.class_map
+        self.sentry_classes = self.config.sentry_classes
+        self.vehicle_classes = self.config.vehicle_classes
 
         # COCO image cache
         self._coco_image_cache = None

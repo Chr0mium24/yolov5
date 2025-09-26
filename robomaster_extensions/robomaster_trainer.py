@@ -29,6 +29,7 @@ from .crosskd_loss import CrossKDLoss, CrossKDTrainer
 from .label_smoothing import RoboMasterLabelSmoothingManager
 from .active_learning import ActiveLearningSelector
 from .grad_cam import GradCAMAnalyzer
+from .config import get_robomaster_config
 
 # Import YOLOv5 components
 import sys
@@ -86,10 +87,13 @@ class RoboMasterTrainer:
             context_mixup_prob=self.config.get('context_mixup_prob', 0.2)
         )
 
+        # Load RoboMaster configuration
+        self.robomaster_config = get_robomaster_config()
+
         # Label smoothing
         self.label_smoother = RoboMasterLabelSmoothingManager(
             strategy=self.config.get('label_smoothing_strategy', 'adaptive'),
-            num_classes=self.config.get('num_classes', 8),
+            num_classes=self.robomaster_config.num_classes,
             base_smoothing=self.config.get('label_smoothing', 0.1)
         )
 

@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 import random
 from typing import List, Tuple, Dict, Optional
+from .config import get_robomaster_config
 
 
 class StickerSwapAugmenter:
@@ -31,21 +32,11 @@ class StickerSwapAugmenter:
         self.sticker_swap_prob = sticker_swap_prob
         self.preserve_geometry = preserve_geometry
 
-        # Define class mappings for RoboMaster
-        self.class_map = {
-            'sentry': 0,
-            'hero': 1,
-            'engineer': 2,
-            'standard_1': 3,
-            'standard_2': 4,
-            'standard_3': 5,
-            'standard_4': 6,
-            'standard_5': 7
-        }
-
-        # Context definitions
-        self.sentry_classes = [0]  # sentry
-        self.vehicle_classes = [1, 2, 3, 4, 5, 6, 7]  # all vehicles
+        # Load RoboMaster configuration
+        self.config = get_robomaster_config()
+        self.class_map = self.config.class_map
+        self.sentry_classes = self.config.sentry_classes
+        self.vehicle_classes = self.config.vehicle_classes
 
     def detect_context(self, labels: np.ndarray, image_size: Tuple[int, int]) -> str:
         """

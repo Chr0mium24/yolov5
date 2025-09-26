@@ -18,6 +18,7 @@ import torch.nn.functional as F
 from typing import List, Dict, Tuple, Optional, Union
 import numpy as np
 import cv2
+from .config import get_robomaster_config
 from pathlib import Path
 import json
 import pickle
@@ -579,7 +580,8 @@ def test_active_learning():
 
     # Create dummy data
     batch_size = 100
-    num_classes = 8
+    config = get_robomaster_config()
+    num_classes = config.num_classes
     image_size = (640, 640, 3)
 
     # Dummy images (random)

@@ -14,6 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, List, Optional, Tuple
 import numpy as np
+from .config import get_robomaster_config
 
 
 class AdaptiveLabelSmoothingLoss(nn.Module):
@@ -47,17 +48,9 @@ class AdaptiveLabelSmoothingLoss(nn.Module):
         self.temperature = temperature
         self.reduction = reduction
 
-        # RoboMaster class mapping
-        self.class_names = {
-            0: 'sentry',
-            1: 'hero',
-            2: 'engineer',
-            3: 'standard_1',
-            4: 'standard_2',
-            5: 'standard_3',
-            6: 'standard_4',
-            7: 'standard_5'
-        }
+        # Load RoboMaster configuration
+        self.config = get_robomaster_config()
+        self.class_names = self.config.class_names
 
         # Initialize similarity matrix
         if similarity_matrix is not None:
@@ -427,6 +420,10 @@ class RoboMasterLabelSmoothingManager:
         """
         self.strategy = strategy
         self.num_classes = num_classes
+
+        # Load RoboMaster configuration for class names
+        self.config = get_robomaster_config()
+        self.class_names = self.config.class_names
 
         if strategy == 'adaptive':
             self.loss_fn = AdaptiveLabelSmoothingLoss(num_classes, **kwargs)

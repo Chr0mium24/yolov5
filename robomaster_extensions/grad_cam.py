@@ -14,6 +14,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from pathlib import Path
+from .config import get_robomaster_config
 
 
 class GradCAM:
@@ -309,11 +310,8 @@ class GradCAMAnalyzer:
         """Save visualization for each class."""
         save_dir.mkdir(parents=True, exist_ok=True)
 
-        class_names = {
-            0: 'sentry', 1: 'hero', 2: 'engineer',
-            3: 'standard_1', 4: 'standard_2', 5: 'standard_3',
-            6: 'standard_4', 7: 'standard_5'
-        }
+        config = get_robomaster_config()
+        class_names = config.class_names
 
         # Create subplot for all classes
         fig, axes = plt.subplots(2, 4, figsize=(16, 8))
