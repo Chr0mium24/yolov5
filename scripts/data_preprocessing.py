@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 RoboMaster数据预处理脚本
 执行背景偏见数据增强，生成训练就绪的数据集

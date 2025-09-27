@@ -39,7 +39,7 @@ class UnifiedDataAugmenter:
                  brightness_adjust_prob: float = 0.4,
                  coco_insert_prob: float = 0.2,
                  preserve_geometry: bool = True,
-                 coco_img_path: Optional[str] = 'data/robomaster/cocoimg'):
+                 coco_img_path: Optional[str] = None):
         """
         Initialize the unified data augmenter.
 
@@ -51,6 +51,21 @@ class UnifiedDataAugmenter:
             preserve_geometry: Whether to preserve bounding box geometry
             coco_img_path: Path to COCO background image library
         """
+        # Auto-detect COCO image path if not provided
+        if coco_img_path is None:
+            # Try to find cocoimg directory relative to common locations
+            possible_coco_paths = [
+                'cocoimg',  # In current working directory
+                'data/robomaster/cocoimg',  # In data/robomaster
+                '../cocoimg',  # One level up
+            ]
+            for path in possible_coco_paths:
+                if Path(path).exists():
+                    coco_img_path = path
+                    break
+            else:
+                coco_img_path = 'cocoimg'  # Default fallback
+
         # Initialize specialized augmenters
         self.sticker_swap_augmenter = StickerSwapAugmenter(
             sticker_swap_prob=sticker_swap_prob,
@@ -384,13 +399,22 @@ class UnifiedDataAugmenter:
         """
         Create a balanced dataset with all six augmentation strategies.
 
-        This method creates a unified output structure compatible with the new
-        data format where all augmented images are placed in a single directory
-        with descriptive prefixes.
+        This method creates output structure compatible with the new data format:
+        data/robomaster/
+        ├── train/
+        │   ├── images/           # 训练图片
+        │   └── labels/           # 训练标签
+        ├── train_augmented/
+        │   ├── images/           # 增强训练图片 (使用前缀命名)
+        │   └── labels/           # 增强训练标签 (使用前缀命名)
+        ├── val/
+        │   ├── images/           # 验证图片
+        │   └── labels/           # 验证标签
+        └── cocoimg/              # COCO背景图片库
 
         Args:
-            dataset_path: Path to original dataset (expects train/ and val/ subdirs)
-            output_path: Path to save augmented dataset
+            dataset_path: Path to dataset (expects train/ and val/ subdirs)
+            output_path: Path to save augmented dataset (can be same as dataset_path)
             generate_all_types: Whether to generate all six augmentation types
             augmentation_factor: Number of augmented versions per type per original image
         """
@@ -402,34 +426,36 @@ class UnifiedDataAugmenter:
         aug_strategies = ['sticker_swap', 'brightness_adjust', 'contrast_adjust',
                          'clahe_enhance', 'adaptive_enhance', 'coco_insert'] if generate_all_types else ['mixed']
 
-        # Create unified output directory structure matching robomaster.yaml expectations
-        # Structure: output/images/train, output/images/train_augmented, output/images/val
+        # Create new directory structure
         for split in ['train', 'val']:
-            # Create directories for original data (copy structure)
-            (output_path / 'images' / split).mkdir(parents=True, exist_ok=True)
-            (output_path / 'labels' / split).mkdir(parents=True, exist_ok=True)
+            # Original data directories (may already exist)
+            (output_path / split / 'images').mkdir(parents=True, exist_ok=True)
+            (output_path / split / 'labels').mkdir(parents=True, exist_ok=True)
 
-            # Create unified augmented data directories
-            (output_path / 'images' / f'{split}_augmented').mkdir(parents=True, exist_ok=True)
-            (output_path / 'labels' / f'{split}_augmented').mkdir(parents=True, exist_ok=True)
+        # Create augmented data directories
+        (output_path / 'train_augmented' / 'images').mkdir(parents=True, exist_ok=True)
+        (output_path / 'train_augmented' / 'labels').mkdir(parents=True, exist_ok=True)
 
-        # Process train and val splits - handle both input formats
+        # Process train and val splits
         for split in ['train', 'val']:
-            # Try two possible input structures
+            # Input paths - handle flexible input structure
             split_img_path = None
             split_lbl_path = None
 
-            # Format 1: dataset_path/train/images (standard YOLOv5 format)
-            if (dataset_path / split / 'images').exists():
-                split_img_path = dataset_path / split / 'images'
-                split_lbl_path = dataset_path / split / 'labels'
-            # Format 2: dataset_path/images/train (alternative format)
-            elif (dataset_path / 'images' / split).exists():
-                split_img_path = dataset_path / 'images' / split
-                split_lbl_path = dataset_path / 'labels' / split
+            # Try multiple possible input structures
+            possible_paths = [
+                (dataset_path / split / 'images', dataset_path / split / 'labels'),  # Standard format
+                (dataset_path / 'images' / split, dataset_path / 'labels' / split),  # Alternative format
+            ]
+
+            for img_path, lbl_path in possible_paths:
+                if img_path.exists() and lbl_path.exists():
+                    split_img_path = img_path
+                    split_lbl_path = lbl_path
+                    break
 
             if split_img_path is None or not split_img_path.exists():
-                print(f"Split {split} not found in either format, skipping...")
+                print(f"Split {split} not found in any expected format, skipping...")
                 continue
 
             # Process all images in split
@@ -480,50 +506,48 @@ class UnifiedDataAugmenter:
 
                 context = self.detect_context(labels, image.shape[:2])
 
-                # Save original to unified images directory structure
-                original_img_dir = output_path / 'images' / split
-                original_lbl_dir = output_path / 'labels' / split
+                # Copy original files to output directory if needed
+                if dataset_path != output_path:
+                    original_img_dir = output_path / split / 'images'
+                    original_lbl_dir = output_path / split / 'labels'
 
-                original_img_dir.mkdir(parents=True, exist_ok=True)
-                original_lbl_dir.mkdir(parents=True, exist_ok=True)
+                    cv2.imwrite(str(original_img_dir / img_file.name), image)
+                    np.savetxt(str(original_lbl_dir / f"{img_file.stem}.txt"),
+                            labels, fmt='%d %.6f %.6f %.6f %.6f')
 
-                cv2.imwrite(str(original_img_dir / img_file.name), image)
-                np.savetxt(str(original_lbl_dir / f"{img_file.stem}.txt"),
-                        labels, fmt='%d %.6f %.6f %.6f %.6f')
+                # Generate augmented versions (only for train split)
+                if split == 'train':
+                    for aug_type in aug_strategies:
+                        for aug_idx in range(augmentation_factor):
+                            # Select context pool for mixup (different from current context)
+                            available_contexts = [k for k, v in context_pools.items()
+                                                if k != context and len(v) > 0]
+                            context_pool = (context_pools[random.choice(available_contexts)]
+                                        if available_contexts else None)
 
-                # Generate augmented versions
-                progress_desc = f"Augmenting {img_file.name}"
-                for aug_type in aug_strategies:
-                    for aug_idx in range(augmentation_factor):
-                        # Select context pool for mixup (different from current context)
-                        available_contexts = [k for k, v in context_pools.items()
-                                            if k != context and len(v) > 0]
-                        context_pool = (context_pools[random.choice(available_contexts)]
-                                    if available_contexts else None)
+                            # Apply specific augmentation type
+                            aug_image, aug_labels, actual_aug_type = self.augment(image, labels, context_pool, aug_type)
 
-                        # Apply specific augmentation type
-                        aug_image, aug_labels, actual_aug_type = self.augment(image, labels, context_pool, aug_type)
+                            # Check if augmentation was actually applied
+                            aug_applied = actual_aug_type != 'original'
 
-                        # Check if augmentation was actually applied
-                        aug_applied = actual_aug_type != 'original'
+                            # Output to train_augmented directory
+                            aug_img_dir = output_path / 'train_augmented' / 'images'
+                            aug_lbl_dir = output_path / 'train_augmented' / 'labels'
 
-                        # Determine output paths using unified structure
-                        aug_img_dir = output_path / 'images' / f'{split}_augmented'
-                        aug_lbl_dir = output_path / 'labels' / f'{split}_augmented'
+                            # Create filename with augmentation type prefix and index
+                            if aug_applied:
+                                # Use actual augmentation type in prefix: clahe_enhance_0001_filename.jpg
+                                aug_prefix = f"{actual_aug_type}_{aug_idx:04d}"
+                            else:
+                                # For cases where augmentation was not applied
+                                aug_prefix = f"original_{aug_idx:04d}"
 
-                        # Create filename with augmentation type prefix and index
-                        if aug_applied:
-                            # Use actual augmentation type in prefix: clahe_enhance_0001_filename.jpg
-                            aug_prefix = f"{actual_aug_type}_{aug_idx:04d}"
-                        else:
-                            # For cases where augmentation was not applied
-                            aug_prefix = f"original_{aug_idx:04d}"
-
-                        # Save augmented data with descriptive prefix filename
-                        aug_name = f"{aug_prefix}_{img_file.stem}{img_file.suffix}"
-                        cv2.imwrite(str(aug_img_dir / aug_name), aug_image)
-                        np.savetxt(str(aug_lbl_dir / f"{aug_prefix}_{img_file.stem}.txt"),
-                                    aug_labels, fmt='%d %.6f %.6f %.6f %.6f')
+                            # Save augmented data with descriptive prefix filename
+                            aug_name = f"{aug_prefix}_{img_file.stem}{img_file.suffix}"
+                            cv2.imwrite(str(aug_img_dir / aug_name), aug_image)
+                            np.savetxt(str(aug_lbl_dir / f"{aug_prefix}_{img_file.stem}.txt"),
+                                        aug_labels, fmt='%d %.6f %.6f %.6f %.6f')
 
                         # Log augmentation results for debugging
                         # if (i + 1) % 100 == 0:
@@ -534,7 +558,7 @@ class UnifiedDataAugmenter:
 
         # Save configuration for tracking
         config = {
-            'dataset_structure': 'unified',  # Mark as new unified structure
+            'dataset_structure': 'new_robomaster_format',  # Mark as new robomaster format
             'augmentation_strategies': aug_strategies,
             'augmentation_factor': augmentation_factor,
             'sticker_swap_prob': self.sticker_swap_prob,
@@ -543,8 +567,9 @@ class UnifiedDataAugmenter:
             'context_mixup_prob': self.context_mixup_prob,
             'coco_img_path': self.coco_img_path,
             'output_structure': {
-                'original_data': 'images/train, images/val',
-                'augmented_data': 'images/train_augmented, images/val_augmented',
+                'original_train': 'train/images, train/labels',
+                'original_val': 'val/images, val/labels',
+                'augmented_train': 'train_augmented/images, train_augmented/labels',
                 'naming_convention': 'prefix_index_filename.ext'
             }
         }
@@ -571,89 +596,26 @@ class UnifiedDataAugmenter:
 
         print(f"Dataset augmentation complete.")
         print(f"Generated augmentation strategies: {aug_strategies}")
-        print(f"Output structure: unified format compatible with robomaster.yaml")
+        print(f"Output structure: new robomaster format")
         print(f"Configuration saved to: {config_file}")
         print(f"Brightness stats saved to: {stats_file}")
         print(f"")
         print(f"Directory structure created:")
-        print(f"  {output_path}/images/train/          # Original training images")
-        print(f"  {output_path}/images/train_augmented/ # All augmented training images")
-        print(f"  {output_path}/images/val/            # Original validation images")
-        print(f"  {output_path}/labels/train/          # Original training labels")
-        print(f"  {output_path}/labels/train_augmented/ # All augmented training labels")
-        print(f"  {output_path}/labels/val/            # Original validation labels")
+        print(f"  {output_path}/train/images/          # Original training images")
+        print(f"  {output_path}/train/labels/          # Original training labels")
+        print(f"  {output_path}/train_augmented/images/ # All augmented training images")
+        print(f"  {output_path}/train_augmented/labels/ # All augmented training labels")
+        print(f"  {output_path}/val/images/            # Original validation images")
+        print(f"  {output_path}/val/labels/            # Original validation labels")
+        print(f"  {output_path}/cocoimg/               # COCO background image library")
         print(f"")
         print(f"Update your robomaster.yaml to point to this output directory:")
         print(f"  path: {output_path}")
-        print(f"  train: images/train_augmented")
-        print(f"  val: images/val")
+        print(f"  train: train_augmented")
+        print(f"  val: val")
 
-
-def test_unified_data_augmenter():
-    """Test function for the UnifiedDataAugmenter with all augmentation types."""
-
-    # Create test data
-    image = np.random.randint(0, 255, (640, 640, 3), dtype=np.uint8)
-    labels = np.array([
-        [0, 0.3, 0.3, 0.1, 0.1],  # sentry
-        [3, 0.7, 0.7, 0.1, 0.1],  # standard_1
-    ])
-
-    # Initialize augmenter
-    augmenter = UnifiedDataAugmenter(
-        sticker_swap_prob=1.0,
-        brightness_adjust_prob=1.0,
-        coco_insert_prob=1.0
-    )
-
-    print("Testing different augmentation types:")
-    print("Original labels:", labels[:, 0])
-    print("Context detection:", augmenter.detect_context(labels, image.shape[:2]))
-
-    # Test sticker swap
-    print("\n--- Testing sticker_swap ---")
-    aug_image_1, aug_labels_1, aug_type_1 = augmenter.augment(image, labels,
-                                                  augmentation_type='sticker_swap')
-    print("Sticker swap result labels:", aug_labels_1[:, 0])
-    print("Applied augmentation type:", aug_type_1)
-
-    # Test enhanced brightness adjustment
-    print("\n--- Testing brightness_adjust ---")
-    aug_image_2, aug_labels_2 = augmenter.brightness_adjust_augmentation(image, labels)
-    print("Brightness adjust result labels:", aug_labels_2[:, 0])
-
-    # Test enhanced contrast adjustment
-    print("\n--- Testing contrast_adjust ---")
-    aug_image_3, aug_labels_3 = augmenter.contrast_adjustment(image, labels)
-    print("Contrast adjust result labels:", aug_labels_3[:, 0])
-
-    # Test CLAHE enhancement
-    print("\n--- Testing clahe_enhance ---")
-    aug_image_4, aug_labels_4 = augmenter.clahe_enhancement(image, labels)
-    print("CLAHE enhance result labels:", aug_labels_4[:, 0])
-
-    # Test adaptive brightness/contrast
-    print("\n--- Testing adaptive_enhance ---")
-    aug_image_5, aug_labels_5 = augmenter.adaptive_brightness_contrast(image, labels)
-    print("Adaptive enhance result labels:", aug_labels_5[:, 0])
-
-    # Test mixed augmentation
-    print("\n--- Testing mixed augmentation ---")
-    aug_image_6, aug_labels_6, aug_type_6 = augmenter.augment(image, labels,
-                                                  augmentation_type='mixed')
-    print("Mixed augmentation result labels:", aug_labels_6[:, 0])
-    print("Applied augmentation type:", aug_type_6)
-
-    return aug_image_1, aug_labels_1
 
 
 # Backward compatibility alias
 BackgroundBiasAugmenter = UnifiedDataAugmenter
 
-def test_background_bias_augmenter():
-    """Legacy test function for backward compatibility."""
-    return test_unified_data_augmenter()
-
-
-if __name__ == "__main__":
-    test_unified_data_augmenter()
