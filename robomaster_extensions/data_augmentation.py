@@ -489,17 +489,17 @@ class UnifiedDataAugmenter:
 
                 cv2.imwrite(str(original_img_dir / img_file.name), image)
                 np.savetxt(str(original_lbl_dir / f"{img_file.stem}.txt"),
-                          labels, fmt='%d %.6f %.6f %.6f %.6f')
+                        labels, fmt='%d %.6f %.6f %.6f %.6f')
 
                 # Generate augmented versions
                 progress_desc = f"Augmenting {img_file.name}"
-                for aug_type in tqdm(aug_strategies, desc=progress_desc, leave=False, unit="aug"):
+                for aug_type in aug_strategies:
                     for aug_idx in range(augmentation_factor):
                         # Select context pool for mixup (different from current context)
                         available_contexts = [k for k, v in context_pools.items()
                                             if k != context and len(v) > 0]
                         context_pool = (context_pools[random.choice(available_contexts)]
-                                       if available_contexts else None)
+                                    if available_contexts else None)
 
                         # Apply specific augmentation type
                         aug_image, aug_labels, actual_aug_type = self.augment(image, labels, context_pool, aug_type)
@@ -523,7 +523,7 @@ class UnifiedDataAugmenter:
                         aug_name = f"{aug_prefix}_{img_file.stem}{img_file.suffix}"
                         cv2.imwrite(str(aug_img_dir / aug_name), aug_image)
                         np.savetxt(str(aug_lbl_dir / f"{aug_prefix}_{img_file.stem}.txt"),
-                                  aug_labels, fmt='%d %.6f %.6f %.6f %.6f')
+                                    aug_labels, fmt='%d %.6f %.6f %.6f %.6f')
 
                         # Log augmentation results for debugging
                         # if (i + 1) % 100 == 0:
