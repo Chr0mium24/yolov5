@@ -18,7 +18,7 @@ def main():
     parser = argparse.ArgumentParser(description='RoboMaster数据预处理与增强')
     parser.add_argument('--input', type=str, default='.',
                        help='原始数据集路径 (格式: train/images, val/images等)')
-    parser.add_argument('--output', type=str, default='./augmented_data',
+    parser.add_argument('--output', type=str, default='./train_augmented',
                        help='输出增强数据集路径')
     parser.add_argument('--aug-factor', type=int, default=2,
                        help='增强倍数 (每张原图生成多少增强版本)')
