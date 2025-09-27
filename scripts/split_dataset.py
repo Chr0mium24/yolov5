@@ -4,7 +4,6 @@
 支持从单个目录自动分割到train/val结构
 """
 
-import os
 import shutil
 import random
 from pathlib import Path
@@ -78,27 +77,27 @@ def split_dataset(source_images_dir: str, source_labels_dir: str,
     print(f"训练集: {len(train_pairs)} 个文件")
     print(f"验证集: {len(val_pairs)} 个文件")
 
-    # 创建目标目录
+    # 创建目标目录 - YOLOv5标准格式: train/images, train/labels, val/images, val/labels
     base_dir = source_images.parent
-    train_img_dir = base_dir / "images" / "train"
-    val_img_dir = base_dir / "images" / "val"
-    train_label_dir = base_dir / "labels" / "train"
-    val_label_dir = base_dir / "labels" / "val"
+    train_img_dir = base_dir / "train" / "images"
+    val_img_dir = base_dir / "val" / "images"
+    train_label_dir = base_dir / "train" / "labels"
+    val_label_dir = base_dir / "val" / "labels"
 
     for dir_path in [train_img_dir, val_img_dir, train_label_dir, val_label_dir]:
         dir_path.mkdir(parents=True, exist_ok=True)
 
-    # 复制训练集文件
-    print("\n正在复制训练集文件...")
+    # 移动训练集文件
+    print("\n正在移动训练集文件...")
     for img_file, label_file in train_pairs:
-        shutil.copy2(img_file, train_img_dir / img_file.name)
-        shutil.copy2(label_file, train_label_dir / label_file.name)
+        shutil.move(str(img_file), str(train_img_dir / img_file.name))
+        shutil.move(str(label_file), str(train_label_dir / label_file.name))
 
-    # 复制验证集文件
-    print("正在复制验证集文件...")
+    # 移动验证集文件
+    print("正在移动验证集文件...")
     for img_file, label_file in val_pairs:
-        shutil.copy2(img_file, val_img_dir / img_file.name)
-        shutil.copy2(label_file, val_label_dir / label_file.name)
+        shutil.move(str(img_file), str(val_img_dir / img_file.name))
+        shutil.move(str(label_file), str(val_label_dir / label_file.name))
 
     print(f"\n数据集分割完成!")
     print(f"训练集: {train_img_dir}")
@@ -144,7 +143,8 @@ def split_existing_mixed_data(base_path: str = "./", train_ratio: float = 0.8):
         return
 
     # 检查是否已经有train/val子目录
-    if (images_dir / "train").exists() or (images_dir / "val").exists():
+    base_dir = images_dir.parent
+    if (base_dir / "train").exists() or (base_dir / "val").exists():
         print("检测到已有train/val目录，请确认是否要重新分割")
         response = input("是否继续? (y/n): ")
         if response.lower() != 'y':
