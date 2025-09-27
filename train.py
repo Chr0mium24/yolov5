@@ -411,7 +411,7 @@ def train(hyp, opt, device, callbacks):
                     imgs = nn.functional.interpolate(imgs, size=ns, mode="bilinear", align_corners=False)
 
             # Forward
-            with torch.cuda.amp.autocast(amp):
+            with torch.amp.autocast('cuda', enabled=amp):
                 pred = model(imgs)  # forward
                 loss, loss_items = compute_loss(pred, targets.to(device))  # loss scaled by batch_size
                 if RANK != -1:
@@ -571,7 +571,7 @@ def parse_opt(known=False):
     parser.add_argument("--data", type=str, default=ROOT / "data/coco128.yaml", help="dataset.yaml path")
     parser.add_argument("--hyp", type=str, default=ROOT / "data/hyps/hyp.scratch-low.yaml", help="hyperparameters path")
     parser.add_argument("--epochs", type=int, default=100, help="total training epochs")
-    parser.add_argument("--batch-size", type=int, default=16, help="total batch size for all GPUs, -1 for autobatch")
+    parser.add_argument("--batch-size", type=int, default=8, help="total batch size for all GPUs, -1 for autobatch")
     parser.add_argument("--imgsz", "--img", "--img-size", type=int, default=640, help="train, val image size (pixels)")
     parser.add_argument("--rect", action="store_true", help="rectangular training")
     parser.add_argument("--resume", nargs="?", const=True, default=False, help="resume most recent training")
