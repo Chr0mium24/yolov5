@@ -16,12 +16,13 @@ from typing import List, Tuple, Dict, Optional
 from pathlib import Path
 import json
 import os
-from .data_augment.config import get_robomaster_config
+from tqdm import tqdm
+from .config import get_robomaster_config
 
 # Import the specialized augmenters
 from .data_augment.sticker_swap import StickerSwapAugmenter
 from .data_augment.background_mixup import BackgroundMixupAugmenter
-from .context_augment import ContextAugmenter
+from .data_augment.context_augment import ContextAugmenter
 
 
 class UnifiedDataAugmenter:
@@ -438,7 +439,7 @@ class UnifiedDataAugmenter:
 
             # First pass: categorize images by context
             print(f"Categorizing {len(image_files)} images in {split} split...")
-            for img_file in image_files:
+            for img_file in tqdm(image_files, desc=f"Categorizing {split} images", unit="img"):
                 label_file = split_lbl_path / f"{img_file.stem}.txt"
 
                 if not label_file.exists():
@@ -461,7 +462,7 @@ class UnifiedDataAugmenter:
             print(f"Context distribution for {split}: {[(k, len(v)) for k, v in context_pools.items()]}")
 
             # Second pass: generate augmented data
-            for i, img_file in enumerate(image_files):
+            for img_file in tqdm(image_files, desc=f"Processing {split} images", unit="img"):
                 label_file = split_lbl_path / f"{img_file.stem}.txt"
 
                 if not label_file.exists():
@@ -491,7 +492,8 @@ class UnifiedDataAugmenter:
                           labels, fmt='%d %.6f %.6f %.6f %.6f')
 
                 # Generate augmented versions
-                for aug_type in aug_strategies:
+                progress_desc = f"Augmenting {img_file.name}"
+                for aug_type in tqdm(aug_strategies, desc=progress_desc, leave=False, unit="aug"):
                     for aug_idx in range(augmentation_factor):
                         # Select context pool for mixup (different from current context)
                         available_contexts = [k for k, v in context_pools.items()
@@ -528,8 +530,7 @@ class UnifiedDataAugmenter:
                         #     print(f"  Applied {actual_aug_type} to {img_file.name} -> {aug_name}")
                         #     print(f"  Augmentation {'successful' if aug_applied else 'skipped'}")
 
-                if (i + 1) % 1000 == 0:
-                    print(f"Processed {i + 1}/{len(image_files)} images in {split}")
+                # Progress is now shown by tqdm, remove periodic print
 
         # Save configuration for tracking
         config = {

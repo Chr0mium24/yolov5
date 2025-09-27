@@ -16,7 +16,7 @@ import cv2
 import numpy as np
 import random
 from typing import List, Tuple, Dict, Optional
-from .config import get_robomaster_config
+from ..config import get_robomaster_config
 
 
 class StickerSwapAugmenter:

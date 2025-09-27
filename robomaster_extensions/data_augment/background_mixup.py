@@ -12,7 +12,7 @@ import os
 import pickle
 from typing import List, Tuple, Dict, Optional
 from pathlib import Path
-from .config import get_robomaster_config
+from ..config import get_robomaster_config
 
 
 class BackgroundMixupAugmenter:

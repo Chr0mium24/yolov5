@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, List, Optional, Tuple
 import numpy as np
-from .data_augment.config import get_robomaster_config
+from .config import get_robomaster_config
 
 
 class AdaptiveLabelSmoothingLoss(nn.Module):

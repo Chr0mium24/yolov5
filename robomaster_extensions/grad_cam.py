@@ -14,7 +14,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from pathlib import Path
-from .data_augment.config import get_robomaster_config
+from .config import get_robomaster_config
 
 
 class GradCAM:

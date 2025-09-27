@@ -29,7 +29,7 @@ from .crosskd_loss import CrossKDLoss, CrossKDTrainer
 from .label_smoothing import RoboMasterLabelSmoothingManager
 from .active_learning import ActiveLearningSelector
 from .grad_cam import GradCAMAnalyzer
-from .data_augment.config import get_robomaster_config
+from .config import get_robomaster_config
 
 # Import YOLOv5 components
 import sys
