@@ -23,7 +23,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 # Import RoboMaster extensions
-from .data_augmentation import BackgroundBiasAugmenter
+from .data_augmentation import UnifiedDataAugmenter
 from .distillation import ProgressiveDistillationTrainer, ProgressiveDistillationLoss
 from .crosskd_loss import CrossKDLoss, CrossKDTrainer
 from .label_smoothing import RoboMasterLabelSmoothingManager
@@ -82,7 +82,7 @@ class RoboMasterTrainer:
         """Initialize all RoboMaster optimization components."""
 
         # Data augmentation for background bias
-        self.bg_augmenter = BackgroundBiasAugmenter(
+        self.bg_augmenter = UnifiedDataAugmenter(
             sticker_swap_prob=self.config.get('sticker_swap_prob', 0.3),
             context_mixup_prob=self.config.get('context_mixup_prob', 0.2)
         )

@@ -266,10 +266,10 @@ python scripts/active_learning_pipeline.py \
 ### 背景偏见数据增强
 
 ```python
-from robomaster_extensions import BackgroundBiasAugmenter
+from robomaster_extensions import UnifiedDataAugmenter
 
 # 初始化增强器
-augmenter = BackgroundBiasAugmenter(
+augmenter = UnifiedDataAugmenter(
     sticker_swap_prob=0.3,
     context_mixup_prob=0.2
 )

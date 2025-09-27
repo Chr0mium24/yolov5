@@ -1,3 +1,4 @@
+#context_augment.py
 """
 Context Augmentation for RoboMaster
 
@@ -20,7 +21,7 @@ class ContextAugmenter:
     """
 
     def __init__(self,
-                 brightness_adjust_prob: float = 0.4):
+                brightness_adjust_prob: float = 0.4):
         """
         Initialize the context augmenter.
 

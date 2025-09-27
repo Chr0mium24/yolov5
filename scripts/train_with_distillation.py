@@ -27,7 +27,7 @@ sys.path.append(str(ROOT))
 
 # Import RoboMaster components
 from robomaster_extensions.robomaster_trainer import RoboMasterTrainer, create_default_config
-from robomaster_extensions.data_augmentation import BackgroundBiasAugmenter
+from robomaster_extensions.data_augmentation import UnifiedDataAugmenter
 
 # Import YOLOv5 components
 from utils.dataloaders import create_dataloader

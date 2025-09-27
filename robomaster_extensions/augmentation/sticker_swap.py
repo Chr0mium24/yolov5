@@ -1,3 +1,4 @@
+#sticker_swap.py
 """
 Sticker Swapping Data Augmentation for RoboMaster
 

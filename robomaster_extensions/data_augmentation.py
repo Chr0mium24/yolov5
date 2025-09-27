@@ -614,8 +614,3 @@ class UnifiedDataAugmenter:
         print(f"  train: train_augmented")
         print(f"  val: val")
 
-
-
-# Backward compatibility alias
-BackgroundBiasAugmenter = UnifiedDataAugmenter
-

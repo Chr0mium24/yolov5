@@ -13,9 +13,9 @@ __version__ = "1.0.0"
 __author__ = "RoboMaster Team"
 
 try:
-    from .data_augmentation import BackgroundBiasAugmenter
+    from .data_augmentation import UnifiedDataAugmenter
 except ImportError:
-    BackgroundBiasAugmenter = None
+    UnifiedDataAugmenter = None
 
 try:
     from .distillation import ProgressiveDistillationTrainer
@@ -48,7 +48,7 @@ except ImportError:
     RoboMasterTrainer = None
 
 __all__ = [
-    "BackgroundBiasAugmenter",
+    "UnifiedDataAugmenter",
     "ProgressiveDistillationTrainer",
     "CrossKDLoss",
     "RoboMasterLabelSmoothingManager",
