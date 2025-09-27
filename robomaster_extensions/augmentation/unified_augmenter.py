@@ -8,9 +8,10 @@ from pathlib import Path
 
 # Import project-specific configurations and specialized augmenters
 from ..config import get_robomaster_config
-from sticker_swap import StickerSwapAugmenter
-from background_mixup import BackgroundMixupAugmenter
-from context_augment import ContextAugmenter
+from .sticker_swap import StickerSwapAugmenter
+from .background_mixup import BackgroundMixupAugmenter
+from .context_augment import ContextAugmenter
+from .context_detector import create_context_detector
 
 
 class UnifiedDataAugmenter:
@@ -61,19 +62,9 @@ class UnifiedDataAugmenter:
         # Load RoboMaster configuration for class definitions
         self.config = get_robomaster_config()
 
-    def detect_context(self, labels: np.ndarray, image_size: Tuple[int, int]) -> str:
-        """
-        Detects if the image context is 'sentry', 'vehicle', or 'mixed'.
-        Delegates the call to the StickerSwapAugmenter for consistent logic.
+        # Initialize unified context detector
+        self.context_detector = create_context_detector(detection_strategy='hybrid')
 
-        Args:
-            labels (np.ndarray): YOLO format labels.
-            image_size (Tuple[int, int]): (height, width) of the image.
-
-        Returns:
-            str: The detected context type.
-        """
-        return self.sticker_swap_augmenter.detect_context(labels, image_size)
 
     def augment(self, image: np.ndarray, labels: np.ndarray,
                 context_pool: Optional[List[Tuple[np.ndarray, np.ndarray]]] = None,

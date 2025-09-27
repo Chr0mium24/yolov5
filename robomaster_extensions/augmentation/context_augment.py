@@ -12,6 +12,7 @@ import numpy as np
 import random
 from typing import List, Tuple, Dict, Optional
 from ..config import get_robomaster_config
+from .context_detector import create_context_detector
 
 
 class ContextAugmenter:
@@ -36,32 +37,9 @@ class ContextAugmenter:
         self.sentry_classes = self.config.sentry_classes
         self.vehicle_classes = self.config.vehicle_classes
 
-    def detect_context(self, labels: np.ndarray, image_size: Tuple[int, int]) -> str:
-        """
-        Detect if image contains sentry post context based on labels.
+        # Initialize unified context detector
+        self.context_detector = create_context_detector(detection_strategy='hybrid')
 
-        Args:
-            labels: YOLO format labels [class, x_center, y_center, width, height]
-            image_size: (height, width) of the image
-
-        Returns:
-            Context type: 'sentry', 'vehicle', or 'mixed'
-        """
-        if len(labels) == 0:
-            return 'unknown'
-
-        classes = labels[:, 0].astype(int)
-        has_sentry = any(cls in self.sentry_classes for cls in classes)
-        has_vehicle = any(cls in self.vehicle_classes for cls in classes)
-
-        if has_sentry and has_vehicle:
-            return 'mixed'
-        elif has_sentry:
-            return 'sentry'
-        elif has_vehicle:
-            return 'vehicle'
-        else:
-            return 'unknown'
 
     def brightness_adjust_augmentation(self, image: np.ndarray,
                                      labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

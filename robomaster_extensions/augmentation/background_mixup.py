@@ -14,6 +14,7 @@ import pickle
 from typing import List, Tuple, Dict, Optional
 from pathlib import Path
 from ..config import get_robomaster_config
+from .context_detector import create_context_detector
 
 
 class BackgroundMixupAugmenter:
@@ -44,36 +45,13 @@ class BackgroundMixupAugmenter:
         self.sentry_classes = self.config.sentry_classes
         self.vehicle_classes = self.config.vehicle_classes
 
+        # Initialize unified context detector
+        self.context_detector = create_context_detector(detection_strategy='hybrid')
+
         # COCO image cache
         self._coco_image_cache = None
         self._coco_cache_loaded = False
 
-    def detect_context(self, labels: np.ndarray, image_size: Tuple[int, int]) -> str:
-        """
-        Detect if image contains sentry post context based on labels.
-
-        Args:
-            labels: YOLO format labels [class, x_center, y_center, width, height]
-            image_size: (height, width) of the image
-
-        Returns:
-            Context type: 'sentry', 'vehicle', or 'mixed'
-        """
-        if len(labels) == 0:
-            return 'unknown'
-
-        classes = labels[:, 0].astype(int)
-        has_sentry = any(cls in self.sentry_classes for cls in classes)
-        has_vehicle = any(cls in self.vehicle_classes for cls in classes)
-
-        if has_sentry and has_vehicle:
-            return 'mixed'
-        elif has_sentry:
-            return 'sentry'
-        elif has_vehicle:
-            return 'vehicle'
-        else:
-            return 'unknown'
 
     def context_mixup(self, image1: np.ndarray, labels1: np.ndarray,
                      image2: np.ndarray, labels2: np.ndarray,
