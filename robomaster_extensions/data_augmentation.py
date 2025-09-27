@@ -381,47 +381,65 @@ class UnifiedDataAugmenter:
                                generate_all_types: bool = True,
                                augmentation_factor: int = 1):
         """
-        Create a balanced dataset with all three augmentation strategies.
+        Create a balanced dataset with all six augmentation strategies.
+
+        This method creates a unified output structure compatible with the new
+        data format where all augmented images are placed in a single directory
+        with descriptive prefixes.
 
         Args:
-            dataset_path: Path to original dataset
+            dataset_path: Path to original dataset (expects train/ and val/ subdirs)
             output_path: Path to save augmented dataset
-            generate_all_types: Whether to generate all three augmentation types
+            generate_all_types: Whether to generate all six augmentation types
             augmentation_factor: Number of augmented versions per type per original image
         """
         dataset_path = Path(dataset_path)
         output_path = Path(output_path)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        # Define enhanced augmentation strategies
+        # Define six augmentation strategies matching the documentation
         aug_strategies = ['sticker_swap', 'brightness_adjust', 'contrast_adjust',
                          'clahe_enhance', 'adaptive_enhance', 'coco_insert'] if generate_all_types else ['mixed']
 
-        # Create simplified output directory structure (no subdirectories for augmentation types)
+        # Create unified output directory structure matching robomaster.yaml expectations
+        # Structure: output/images/train, output/images/train_augmented, output/images/val
         for split in ['train', 'val']:
-            # Create directories for original data
-            (output_path / split / 'images').mkdir(parents=True, exist_ok=True)
-            (output_path / split / 'labels').mkdir(parents=True, exist_ok=True)
-            # Create directories for augmented data
-            (output_path / f'{split}_augmented' / 'images').mkdir(parents=True, exist_ok=True)
-            (output_path / f'{split}_augmented' / 'labels').mkdir(parents=True, exist_ok=True)
+            # Create directories for original data (copy structure)
+            (output_path / 'images' / split).mkdir(parents=True, exist_ok=True)
+            (output_path / 'labels' / split).mkdir(parents=True, exist_ok=True)
 
-        # Process train and val splits
+            # Create unified augmented data directories
+            (output_path / 'images' / f'{split}_augmented').mkdir(parents=True, exist_ok=True)
+            (output_path / 'labels' / f'{split}_augmented').mkdir(parents=True, exist_ok=True)
+
+        # Process train and val splits - handle both input formats
         for split in ['train', 'val']:
-            split_path = dataset_path / 'images' / split
-            if not split_path.exists():
-                print(f"Split {split} not found, skipping...")
+            # Try two possible input structures
+            split_img_path = None
+            split_lbl_path = None
+
+            # Format 1: dataset_path/train/images (standard YOLOv5 format)
+            if (dataset_path / split / 'images').exists():
+                split_img_path = dataset_path / split / 'images'
+                split_lbl_path = dataset_path / split / 'labels'
+            # Format 2: dataset_path/images/train (alternative format)
+            elif (dataset_path / 'images' / split).exists():
+                split_img_path = dataset_path / 'images' / split
+                split_lbl_path = dataset_path / 'labels' / split
+
+            if split_img_path is None or not split_img_path.exists():
+                print(f"Split {split} not found in either format, skipping...")
                 continue
 
             # Process all images in split
-            image_files = list(split_path.glob('*.jpg')) + list(split_path.glob('*.png'))
+            image_files = list(split_img_path.glob('*.jpg')) + list(split_img_path.glob('*.png'))
 
             context_pools = {'sentry': [], 'vehicle': [], 'mixed': []}
 
             # First pass: categorize images by context
             print(f"Categorizing {len(image_files)} images in {split} split...")
             for img_file in image_files:
-                label_file = dataset_path / 'labels' / split / f"{img_file.stem}.txt"
+                label_file = split_lbl_path / f"{img_file.stem}.txt"
 
                 if not label_file.exists():
                     continue
@@ -444,7 +462,7 @@ class UnifiedDataAugmenter:
 
             # Second pass: generate augmented data
             for i, img_file in enumerate(image_files):
-                label_file = dataset_path / 'labels' / split / f"{img_file.stem}.txt"
+                label_file = split_lbl_path / f"{img_file.stem}.txt"
 
                 if not label_file.exists():
                     continue
@@ -461,9 +479,9 @@ class UnifiedDataAugmenter:
 
                 context = self.detect_context(labels, image.shape[:2])
 
-                # Save original to train or val directory
-                original_img_dir = output_path / split / 'images'
-                original_lbl_dir = output_path / split / 'labels'
+                # Save original to unified images directory structure
+                original_img_dir = output_path / 'images' / split
+                original_lbl_dir = output_path / 'labels' / split
 
                 original_img_dir.mkdir(parents=True, exist_ok=True)
                 original_lbl_dir.mkdir(parents=True, exist_ok=True)
@@ -487,19 +505,19 @@ class UnifiedDataAugmenter:
                         # Check if augmentation was actually applied
                         aug_applied = actual_aug_type != 'original'
 
-                        # Determine output paths and file naming with prefix
-                        aug_img_dir = output_path / f'{split}_augmented' / 'images'
-                        aug_lbl_dir = output_path / f'{split}_augmented' / 'labels'
+                        # Determine output paths using unified structure
+                        aug_img_dir = output_path / 'images' / f'{split}_augmented'
+                        aug_lbl_dir = output_path / 'labels' / f'{split}_augmented'
 
                         # Create filename with augmentation type prefix and index
                         if aug_applied:
-                            # Use actual augmentation type in prefix: clahe_enhance_0001.jpg
+                            # Use actual augmentation type in prefix: clahe_enhance_0001_filename.jpg
                             aug_prefix = f"{actual_aug_type}_{aug_idx:04d}"
                         else:
                             # For cases where augmentation was not applied
                             aug_prefix = f"original_{aug_idx:04d}"
 
-                        # Save augmented data with prefix filename
+                        # Save augmented data with descriptive prefix filename
                         aug_name = f"{aug_prefix}_{img_file.stem}{img_file.suffix}"
                         cv2.imwrite(str(aug_img_dir / aug_name), aug_image)
                         np.savetxt(str(aug_lbl_dir / f"{aug_prefix}_{img_file.stem}.txt"),
@@ -513,25 +531,31 @@ class UnifiedDataAugmenter:
                 if (i + 1) % 1000 == 0:
                     print(f"Processed {i + 1}/{len(image_files)} images in {split}")
 
-        # Save configuration
+        # Save configuration for tracking
         config = {
+            'dataset_structure': 'unified',  # Mark as new unified structure
             'augmentation_strategies': aug_strategies,
             'augmentation_factor': augmentation_factor,
             'sticker_swap_prob': self.sticker_swap_prob,
             'brightness_adjust_prob': self.brightness_adjust_prob,
             'coco_insert_prob': self.coco_insert_prob,
             'context_mixup_prob': self.context_mixup_prob,
-            'coco_img_path': self.coco_img_path
+            'coco_img_path': self.coco_img_path,
+            'output_structure': {
+                'original_data': 'images/train, images/val',
+                'augmented_data': 'images/train_augmented, images/val_augmented',
+                'naming_convention': 'prefix_index_filename.ext'
+            }
         }
 
-        config_file = output_path / 'processed' / 'augmentation_config.yaml'
+        config_file = output_path / 'augmentation_config.yaml'
         config_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(config_file, 'w') as f:
             import yaml
             yaml.dump(config, f, default_flow_style=False)
 
-        # Save brightness statistics
+        # Save brightness statistics in root output directory
         brightness_stats = {
             'mean_brightness_threshold_low': 100,
             'mean_brightness_threshold_high': 180,
@@ -540,14 +564,28 @@ class UnifiedDataAugmenter:
             'normal_image_factor_range': [0.8, 1.3]
         }
 
-        stats_file = output_path / 'processed' / 'brightness_stats.json'
+        stats_file = output_path / 'brightness_stats.json'
         with open(stats_file, 'w') as f:
             json.dump(brightness_stats, f, indent=2)
 
         print(f"Dataset augmentation complete.")
         print(f"Generated augmentation strategies: {aug_strategies}")
+        print(f"Output structure: unified format compatible with robomaster.yaml")
         print(f"Configuration saved to: {config_file}")
         print(f"Brightness stats saved to: {stats_file}")
+        print(f"")
+        print(f"Directory structure created:")
+        print(f"  {output_path}/images/train/          # Original training images")
+        print(f"  {output_path}/images/train_augmented/ # All augmented training images")
+        print(f"  {output_path}/images/val/            # Original validation images")
+        print(f"  {output_path}/labels/train/          # Original training labels")
+        print(f"  {output_path}/labels/train_augmented/ # All augmented training labels")
+        print(f"  {output_path}/labels/val/            # Original validation labels")
+        print(f"")
+        print(f"Update your robomaster.yaml to point to this output directory:")
+        print(f"  path: {output_path}")
+        print(f"  train: images/train_augmented")
+        print(f"  val: images/val")
 
 
 def test_unified_data_augmenter():

@@ -1,22 +1,14 @@
 # RoboMaster Armor Plate Detection Dataset Configuration
 # 数据集路径配置
 
-# 数据集根目录
-path: data/robomaster_augmented
+# 数据集根目录 - 更新为统一结构输出路径
+path: data/robomaster
 
 # 训练/验证/测试集路径 (相对于path)
-# 支持多路径训练数据加载：原始数据 + 6种增强数据
-train:
-  - images/train                        # 原始训练数据
-  - images/train_augmented/sticker_swap      # 贴纸交换增强
-  - images/train_augmented/brightness_adjust # 明暗调整增强
-  - images/train_augmented/contrast_adjust   # 对比度调整增强
-  - images/train_augmented/clahe_enhance     # CLAHE增强
-  - images/train_augmented/adaptive_enhance  # 自适应增强
-  - images/train_augmented/coco_insert       # COCO插入增强
-
-val: images/val      # 验证集
-test: images/test    # 测试集 (可选)
+# 统一增强数据结构：所有6种增强类型混合在train_augmented目录中
+train: images/train_augmented  # 包含所有6种增强数据，使用前缀命名区分
+val: images/val               # 验证集（原始数据）
+test: images/test             # 测试集 (可选)
 
 # RoboMaster装甲板类别
 names:

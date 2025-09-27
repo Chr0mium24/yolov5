@@ -103,6 +103,15 @@ def split_dataset(source_images_dir: str, source_labels_dir: str,
     print(f"训练集: {train_img_dir}")
     print(f"验证集: {val_img_dir}")
 
+    print("\n正在删除原始的 images 和 labels 文件夹...")
+    try:
+        shutil.rmtree(source_images)
+        shutil.rmtree(source_labels)
+        print("原始文件夹删除成功。")
+    except OSError as e:
+        print(f"删除原始文件夹时出错: {e}")
+
+
 def split_existing_mixed_data(base_path: str = "./", train_ratio: float = 0.8):
     """
     如果images和labels目录下直接放着混合的文件，自动分割为train/val
