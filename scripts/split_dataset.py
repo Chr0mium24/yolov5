@@ -130,8 +130,6 @@ def split_existing_mixed_data(base_path: str = "./", train_ratio: float = 0.8):
             print("  方案1: ./images/ 和 ./labels/")
             print("  方案2: ./data/robomaster/images/ 和 ./data/robomaster/labels/")
             print("\n请先将您的图片和标签文件放到相应目录中，然后重新运行此脚本。")
-            print("或者使用以下命令创建目录结构:")
-            print("  python scripts/create_directory_structure.py")
             return
 
     # 检查目录是否为空

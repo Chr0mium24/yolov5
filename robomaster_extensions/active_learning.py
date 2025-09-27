@@ -18,7 +18,7 @@ import torch.nn.functional as F
 from typing import List, Dict, Tuple, Optional, Union
 import numpy as np
 import cv2
-from .config import get_robomaster_config
+from .data_augment.config import get_robomaster_config
 from pathlib import Path
 import json
 import pickle

@@ -16,11 +16,11 @@ from typing import List, Tuple, Dict, Optional
 from pathlib import Path
 import json
 import os
-from .config import get_robomaster_config
+from .data_augment.config import get_robomaster_config
 
 # Import the specialized augmenters
-from .sticker_swap import StickerSwapAugmenter
-from .background_mixup import BackgroundMixupAugmenter
+from .data_augment.sticker_swap import StickerSwapAugmenter
+from .data_augment.background_mixup import BackgroundMixupAugmenter
 from .context_augment import ContextAugmenter
 
 
@@ -397,20 +397,14 @@ class UnifiedDataAugmenter:
         aug_strategies = ['sticker_swap', 'brightness_adjust', 'contrast_adjust',
                          'clahe_enhance', 'adaptive_enhance', 'coco_insert'] if generate_all_types else ['mixed']
 
-        # Create organized output directory structure matching new layout
-        if generate_all_types:
-            for split in ['train', 'val']:
-                # Create original directories
-                (output_path / 'images' / split).mkdir(parents=True, exist_ok=True)
-                (output_path / 'labels' / split).mkdir(parents=True, exist_ok=True)
-                # Create augmented directories
-                for aug_type in aug_strategies:
-                    (output_path / 'images' / f'{split}_augmented' / aug_type).mkdir(parents=True, exist_ok=True)
-                    (output_path / 'labels' / f'{split}_augmented' / aug_type).mkdir(parents=True, exist_ok=True)
-        else:
-            # Standard structure for mixed augmentation
-            (output_path / 'images').mkdir(exist_ok=True)
-            (output_path / 'labels').mkdir(exist_ok=True)
+        # Create simplified output directory structure (no subdirectories for augmentation types)
+        for split in ['train', 'val']:
+            # Create directories for original data
+            (output_path / split / 'images').mkdir(parents=True, exist_ok=True)
+            (output_path / split / 'labels').mkdir(parents=True, exist_ok=True)
+            # Create directories for augmented data
+            (output_path / f'{split}_augmented' / 'images').mkdir(parents=True, exist_ok=True)
+            (output_path / f'{split}_augmented' / 'labels').mkdir(parents=True, exist_ok=True)
 
         # Process train and val splits
         for split in ['train', 'val']:
@@ -468,12 +462,8 @@ class UnifiedDataAugmenter:
                 context = self.detect_context(labels, image.shape[:2])
 
                 # Save original to train or val directory
-                if generate_all_types:
-                    original_img_dir = output_path / 'images' / split
-                    original_lbl_dir = output_path / 'labels' / split
-                else:
-                    original_img_dir = output_path / 'images'
-                    original_lbl_dir = output_path / 'labels'
+                original_img_dir = output_path / split / 'images'
+                original_lbl_dir = output_path / split / 'labels'
 
                 original_img_dir.mkdir(parents=True, exist_ok=True)
                 original_lbl_dir.mkdir(parents=True, exist_ok=True)
@@ -497,30 +487,22 @@ class UnifiedDataAugmenter:
                         # Check if augmentation was actually applied
                         aug_applied = actual_aug_type != 'original'
 
-                        # Determine output paths and file naming
-                        if generate_all_types:
-                            aug_img_dir = output_path / 'images' / f'{split}_augmented' / aug_type
-                            aug_lbl_dir = output_path / 'labels' / f'{split}_augmented' / aug_type
+                        # Determine output paths and file naming with prefix
+                        aug_img_dir = output_path / f'{split}_augmented' / 'images'
+                        aug_lbl_dir = output_path / f'{split}_augmented' / 'labels'
 
-                            # Include augmentation status in filename
-                            if aug_applied:
-                                aug_suffix = f"_{actual_aug_type}_{aug_idx}"
-                            else:
-                                aug_suffix = f"_noaug_{aug_idx}"
+                        # Create filename with augmentation type prefix and index
+                        if aug_applied:
+                            # Use actual augmentation type in prefix: clahe_enhance_0001.jpg
+                            aug_prefix = f"{actual_aug_type}_{aug_idx:04d}"
                         else:
-                            aug_img_dir = output_path / 'images'
-                            aug_lbl_dir = output_path / 'labels'
+                            # For cases where augmentation was not applied
+                            aug_prefix = f"original_{aug_idx:04d}"
 
-                            # Include augmentation status in filename
-                            if aug_applied:
-                                aug_suffix = f"_{actual_aug_type}_aug_{aug_idx}"
-                            else:
-                                aug_suffix = f"_noaug_{aug_idx}"
-
-                        # Save augmented data with descriptive filename
-                        aug_name = f"{img_file.stem}{aug_suffix}{img_file.suffix}"
+                        # Save augmented data with prefix filename
+                        aug_name = f"{aug_prefix}_{img_file.stem}{img_file.suffix}"
                         cv2.imwrite(str(aug_img_dir / aug_name), aug_image)
-                        np.savetxt(str(aug_lbl_dir / f"{img_file.stem}{aug_suffix}.txt"),
+                        np.savetxt(str(aug_lbl_dir / f"{aug_prefix}_{img_file.stem}.txt"),
                                   aug_labels, fmt='%d %.6f %.6f %.6f %.6f')
 
                         # Log augmentation results for debugging
