@@ -39,7 +39,14 @@
 yolov5/
 ├── robomaster_extensions/          # RoboMaster优化模块
 │   ├── __init__.py
-│   ├── data_augmentation.py        # 背景偏见数据增强
+│   ├── augmentation/              # 数据增强模块（重构后）
+│   │   ├── background_mixup.py    # 背景混合增强
+│   │   ├── context_augment.py     # 上下文增强
+│   │   ├── sticker_swap.py        # 贴纸交换增强
+│   │   ├── unified_augmenter.py   # 统一增强器
+│   │   ├── dataset_manager.py     # 数据集管理器
+│   │   └── pipeline.py           # 增强流水线
+│   ├── data_augmentation.py        # 背景偏见数据增强（兼容保留）
 │   ├── distillation.py            # 助教蒸馏框架
 │   ├── crosskd_loss.py            # CrossKD损失函数
 │   ├── label_smoothing.py         # Label Smoothing实现
@@ -51,11 +58,58 @@ yolov5/
 │   ├── robomaster_yolov5s.yaml   # 优化的标准模型
 │   └── robomaster_yolov5x.yaml   # 优化的大模型(教师)
 ├── scripts/
-    ├── create_directory_structure.py   # 自动创建目录结构
     ├── split_dataset.py               # 自动分割数据集
+    ├── run_augmentation.py            # 新数据增强主脚本
+    ├── data_preprocessing.py          # 数据预处理脚本（兼容保留）
     ├── train_with_distillation.py      # 蒸馏训练脚本
     └── active_learning_pipeline.py     # 主动学习流程
 
+```
+
+## 🔧 架构重构说明
+
+### 新模块化架构优势
+
+**重构后的 `robomaster_extensions/augmentation/` 模块提供：**
+
+- **🔧 模块化设计**: 每个增强策略独立实现，便于维护和扩展
+- **📦 统一接口**: `AugmentationPipeline` 提供统一的数据增强流水线
+- **⚙️ 灵活配置**: 通过配置字典或命令行参数精确控制增强行为
+- **🔄 易于扩展**: 新增增强策略只需实现标准接口即可无缝集成
+- **🔌 向后兼容**: 保留原有API接口，确保现有代码正常运行
+
+### 模块职责分工
+
+| 模块 | 职责 | 说明 |
+|------|------|------|
+| `pipeline.py` | 流水线协调 | 统一管理整个增强流程 |
+| `unified_augmenter.py` | 核心增强器 | 实现各种增强策略的统一接口 |
+| `dataset_manager.py` | 数据集管理 | 处理文件I/O、目录管理等 |
+| `sticker_swap.py` | 贴纸交换 | 专门解决背景偏见问题 |
+| `background_mixup.py` | 背景混合 | COCO图片插入等背景增强 |
+| `context_augment.py` | 上下文增强 | 亮度、对比度、CLAHE等 |
+
+### 迁移指南
+
+**从旧版脚本迁移：**
+```bash
+# 旧版用法
+python scripts/data_preprocessing.py
+
+# 新版用法（功能更强大）
+python scripts/run_augmentation.py \
+    --input data/robomaster_dataset \
+    --output data/robomaster_augmented \
+    --strategies sticker_swap brightness_adjust
+```
+
+**从旧版API迁移：**
+```python
+# 旧版API（仍然兼容）
+from robomaster_extensions import UnifiedDataAugmenter
+
+# 新版API（推荐）
+from robomaster_extensions.augmentation.pipeline import AugmentationPipeline
 ```
 
 ## 快速开始
@@ -106,28 +160,46 @@ python scripts/split_dataset.py /path/to/images /path/to/labels 0.7
 - **输出格式**: 生成YOLOv5标准格式的 `train/images/`, `train/labels/`, `val/images/`, `val/labels/` 目录结构
 
 **步骤2：生成增强数据**
-数据分割完成后，生成6种类型的增强数据：
+数据分割完成后，使用新的模块化增强流水线生成增强数据：
+
+**推荐使用新的增强脚本：**
 ```bash
-# 生成完整的数据增强（adaptive_enhance, brightness_adjust, clahe_enhance, coco_insert, contrast_adjust, sticker_swap）
+# 使用新的模块化增强流水线（推荐）
+python scripts/run_augmentation.py \
+    --input data/robomaster_dataset \
+    --output data/robomaster_augmented \
+    --strategies sticker_swap brightness_adjust clahe_enhance coco_insert \
+    --aug-factor 2 \
+    --sticker-swap-prob 0.5 \
+    --coco-insert-prob 0.3
+```
+
+**兼容性支持（旧版脚本）：**
+```bash
+# 兼容旧版本的数据预处理脚本
 python scripts/data_preprocessing.py
 ```
 
-**数据预处理脚本支持格式：**
-- **标准格式**: 自动检测 `train/images/`, `train/labels/`, `val/images/`, `val/labels/` 结构
-- **增强倍数**: 可通过 `--aug-factor` 参数控制每张原图生成的增强版本数量
-- **概率控制**: `--sticker-swap-prob` 和 `--context-mixup-prob` 控制特定增强的应用概率
+**新增强脚本支持的特性：**
+- **模块化架构**: 基于新的 `robomaster_extensions.augmentation` 模块
+- **灵活配置**: 通过命令行参数精确控制各种增强策略
+- **策略选择**: 可自由组合 sticker_swap, brightness_adjust, clahe_enhance, coco_insert 等策略
+- **增强倍数**: `--aug-factor` 控制每张原图生成的增强版本数量
+- **概率控制**: 独立控制每种增强策略的应用概率
+- **路径灵活**: 支持自定义输入输出路径和COCO背景图片库路径
 
-**支持的使用场景：**
-- 自动检测数据目录结构（项目根目录或 `data/robomaster/` 目录）
-- 支持自定义分割比例（默认8:2）
-- 智能文件配对（自动匹配图片和对应标签）
-- 容错处理（缺失标签文件会发出警告但不中断处理）
+**支持的增强策略：**
+- `sticker_swap`: 贴纸交换增强（解决背景偏见）
+- `brightness_adjust`: 亮度调整增强
+- `clahe_enhance`: CLAHE直方图均衡化
+- `coco_insert`: COCO背景图片插入
+- `context_augment`: 上下文增强（可选）
 
 **注意事项：**
 - 必须先运行 `split_dataset.py` 创建标准的 train/val 目录结构
-- 然后运行 `data_preprocessing.py` 生成增强数据
+- 推荐使用新的 `run_augmentation.py` 脚本，功能更强大且模块化
+- 旧版 `data_preprocessing.py` 脚本仍然兼容，但建议迁移到新架构
 - 脚本会自动创建输出目录，无需手动创建
-- 如果目录结构已存在，会提示用户确认是否重新处理
 
 #### 标准训练数据结构
 
@@ -265,20 +337,56 @@ python scripts/active_learning_pipeline.py \
 
 ### 背景偏见数据增强
 
+**新模块化API（推荐）：**
 ```python
-from robomaster_extensions import UnifiedDataAugmenter
+from robomaster_extensions.augmentation.pipeline import AugmentationPipeline
+
+# 配置增强流水线
+config = {
+    "input_path": "data/robomaster_dataset",
+    "output_path": "data/robomaster_augmented",
+    "coco_img_path": "data/robomaster_dataset/cocoimg",
+    "strategies": ["sticker_swap", "brightness_adjust", "coco_insert"],
+    "augmentation_factor": 2,
+    "sticker_swap_prob": 0.5,
+    "context_mixup_prob": 0.2,
+    "brightness_adjust_prob": 0.6,
+    "coco_insert_prob": 0.3
+}
+
+# 运行增强流水线
+pipeline = AugmentationPipeline(config)
+pipeline.run()
+```
+
+**直接使用增强器（高级用法）：**
+```python
+from robomaster_extensions.augmentation.unified_augmenter import UnifiedDataAugmenter
 
 # 初始化增强器
 augmenter = UnifiedDataAugmenter(
     sticker_swap_prob=0.3,
-    context_mixup_prob=0.2
+    context_mixup_prob=0.2,
+    brightness_adjust_prob=0.6,
+    coco_insert_prob=0.3
 )
 
-# 创建平衡数据集
-augmenter.create_balanced_dataset(
-    dataset_path='data/original',
-    output_path='data/augmented',
-    augmentation_factor=2
+# 处理单张图片
+augmented_image, augmented_labels = augmenter.process_image(
+    image_path="path/to/image.jpg",
+    label_path="path/to/label.txt",
+    strategy="sticker_swap"
+)
+```
+
+**兼容性API（旧版）：**
+```python
+from robomaster_extensions import UnifiedDataAugmenter
+
+# 向后兼容的接口
+augmenter = UnifiedDataAugmenter(
+    sticker_swap_prob=0.3,
+    context_mixup_prob=0.2
 )
 ```
 
