@@ -25,10 +25,10 @@ def main():
     )
     
     # --- 路径参数 ---
-    parser.add_argument('--input', type=str, default='data/robomaster_dataset',
-                        help='[必需] 原始数据集路径 (e.g., data/robomaster_dataset)')
-    parser.add_argument('--output', type=str, required=True,
-                        help='[必需] 输出增强数据集的路径 (e.g., data/robomaster_augmented)')
+    parser.add_argument('--input', type=str, default='robomaster',
+                        help='原始数据集路径 (e.g., data/robomaster)')
+    parser.add_argument('--output', type=str, default='robomaster',
+                        help='输出增强数据集的路径 (e.g., data/robomaster_augmented)')
     parser.add_argument('--coco-path', type=str, default=None,
                         help='COCO背景图片库路径。如果未提供，将尝试在输入路径下查找 "cocoimg"')
 
